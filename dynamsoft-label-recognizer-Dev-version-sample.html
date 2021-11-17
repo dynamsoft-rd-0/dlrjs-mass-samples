@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dynamsoft-label-recognizer-Dev-version-sample</title>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@2.0.3/dist/dce.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/keillion-dynamsoft-label-recognizer@0.20211116163253.0/dist/dlr.pure.js" data-license="t0068MgAAAKUZULwM1SshTkeSYEV5LPo0cnYXkSYBlpGkb0XcP1NTLvP+//NMWCbQfuyxGn1hbLfqF/bV7FuoMzNPJljQqW0="></script>
+</head>
+<body>
+    <button id="btn-openRecognizer">open recognizer</button><br>
+    <br>
+    <div id="div-ori-result-container" style="width:100%;height:calc(100vh - 160px);display:flex;overflow:hidden;"></div>
+
+    <script>
+        let recognizer = null;
+        let dce = null;
+        async function openRecognizer() {
+            dce = await Dynamsoft.DCE.CameraEnhancer.createInstance();
+            await dce.setUIElement(Dynamsoft.DLR.LabelRecognizer.defaultUIElementURL);
+            recognizer = await Dynamsoft.DLR.LabelRecognizer.createInstance({ runtimeSettings: "video-vin" });
+            recognizer.cameraEnhancer = dce;
+            await recognizer.startScanning(true);
+            recognizer.onUniqueRead = txt => alert("onUniqueRead: "+txt);
+        }
+        
+        document.getElementById('btn-openRecognizer').addEventListener("click", function(){
+            openRecognizer();
+        });
+
+    </script>
+</body>
+</html>
