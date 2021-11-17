@@ -17,7 +17,7 @@
             cameraEnhancer = await (pCameraEnhancer = pCameraEnhancer || Dynamsoft.DCE.CameraEnhancer.createInstance());
             await cameraEnhancer.setUIElement(Dynamsoft.DLR.LabelRecognizer.defaultUIElementURL);
             recognizer = await (pRecognizer = pRecognizer || Dynamsoft.DLR.LabelRecognizer.createInstance({
-                runtimeSettings: "video-letter"
+                runtimeSettings: "video-vin"
             }));
             recognizer.cameraEnhancer = cameraEnhancer;
             await recognizer.startScanning(true);
