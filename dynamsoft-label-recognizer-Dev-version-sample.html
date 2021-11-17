@@ -19,6 +19,9 @@
             recognizer = await Dynamsoft.DLR.LabelRecognizer.createInstance({ runtimeSettings: "video-vin" });
             recognizer.cameraEnhancer = dce;
             await recognizer.startScanning(true);
+            recognizer.onFrameRead = async results => {
+                console.log(results);
+            }
             recognizer.onUniqueRead = txt => alert("onUniqueRead: "+txt);
         }
         
