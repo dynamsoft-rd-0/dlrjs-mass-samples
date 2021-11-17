@@ -11,13 +11,15 @@
 <body>
     <button id="btn-openRecognizer">open recognizer</button><br>
     <script>
-        let recognizer = null;
-        let dce = null;
+        let recognizer = null, pRecognizer = null;
+        let cameraEnhancer = null, pCameraEnhancer = null;
         async function openRecognizer() {
-            dce = await Dynamsoft.DCE.CameraEnhancer.createInstance();
-            await dce.setUIElement(Dynamsoft.DLR.LabelRecognizer.defaultUIElementURL);
-            recognizer = await Dynamsoft.DLR.LabelRecognizer.createInstance({ runtimeSettings: "video-vin" });
-            recognizer.cameraEnhancer = dce;
+            cameraEnhancer = await (pCameraEnhancer = pCameraEnhancer || Dynamsoft.DCE.CameraEnhancer.createInstance());
+            await cameraEnhancer.setUIElement(Dynamsoft.DLR.LabelRecognizer.defaultUIElementURL);
+            recognizer = await (pRecognizer = pRecognizer || Dynamsoft.DLR.LabelRecognizer.createInstance({
+                runtimeSettings: "video-letter"
+            }));
+            recognizer.cameraEnhancer = cameraEnhancer;
             await recognizer.startScanning(true);
             recognizer.onFrameRead = async results => {
                 console.log(results);
