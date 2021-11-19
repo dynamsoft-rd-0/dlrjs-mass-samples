@@ -75,6 +75,61 @@
                         newElements.push(document.createElement('br'));
                     }
                     for (let result of results) {
+                        let str1 = result.lineResults[0].text;
+                        let str2 = result.lineResults[1].text;
+
+                        let nation = str1.substring(2, 5);
+                        if(nation[nation.length - 1] == '<') {
+                            nation = nation.substr(0, 2);
+                        }
+                        console.log("Nationality: " + nation);
+
+                        str1 = str1.substring(5);
+                        var pos = str1.indexOf("<<");
+                        let surName = str1.substring(0, pos);
+                        console.log("Surname: " + surName);
+
+                        str1 = str1.substring(surName.length + 2);
+                        pos = str1.indexOf("<");
+                        let givenName = str1.substring(0, pos);
+
+                        str1 = str1.substring(givenName.length + 1);
+                        pos = str1.indexOf("<<<");
+                        givenName = givenName + " " + str1.substring(0, pos);
+                        console.log("Given Name: " + givenName);
+
+                        let passportNumber = str2.substring(0, 9);
+                        console.log("Passport Number: " + passportNumber);
+
+                        let issueCountry = str2.substr(10, 3);
+                        if(issueCountry[issueCountry.length - 1] == '<'){
+                            issueCountry = issueCountry.substr(0, 2);
+                        }
+                        console.log("Issuing Country or Organization: " + issueCountry);
+
+                        let birth = str2.substr(13, 6);
+                        var date = new Date();
+                        currentYear = date.getFullYear();
+                        if(birth.substr(0, 2) > (currentYear%100)){
+                            birth = "19" + birth;
+                        }else {
+                            birth = "20" + birth;
+                        }
+                        birth = birth.slice(0, 4) + "-" + birth.slice(4, 6) + "-" + birth.slice(6);
+                        console.log("Date of Birth: " + birth);
+
+                        let gender = str2[20];
+                        console.log("Gender: " + gender);
+
+                        let expiry = str2.substr(21, 6);
+                        if(expiry.substr(0, 2) > (currentYear%100)){
+                            expiry = "19" + expiry;
+                        }else {
+                            expiry = "20" + expiry;
+                        }
+                        expiry = expiry.slice(0, 4) + "-" + expiry.slice(4, 6) + "-" + expiry.slice(6);
+                        console.log("Date of Expiry: " + expiry);
+
                         for (let lineResult of result.lineResults) {
                             document.getElementById('result').value = "Last recognize: " + lineResult.text;
                             newElements.push(createASpan(lineResult.text, "resultText"));
