@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>dynamsoft-label-recognizer-Dev-version-sample</title>
     <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@2.0.3/dist/dce.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/keillion-dynamsoft-label-recognizer@0.20211119151032.0/dist/dlr.js" data-license="t0068MgAAAKUZULwM1SshTkeSYEV5LPo0cnYXkSYBlpGkb0XcP1NTLvP+//NMWCbQfuyxGn1hbLfqF/bV7FuoMzNPJljQqW0="></script>
+    <script src="https://cdn.jsdelivr.net/npm/keillion-dynamsoft-label-recognizer@0.20211123171208.0/dist/dlr.js" data-license="t0068MgAAAKUZULwM1SshTkeSYEV5LPo0cnYXkSYBlpGkb0XcP1NTLvP+//NMWCbQfuyxGn1hbLfqF/bV7FuoMzNPJljQqW0="></script>
 </head>
 <body>
     <button id="btn-openRecognizer">open recognizer</button><br>
@@ -22,7 +22,11 @@
             recognizer.cameraEnhancer = cameraEnhancer;
             await recognizer.startScanning(true);
             recognizer.onFrameRead = async results => {
-                console.log(results);
+                for (let result of results) {
+                    for (let lineResult of result.lineResults) {
+                        console.log(lineResult.text);
+                    }
+                }
             }
             recognizer.onUniqueRead = txt => alert("onUniqueRead: "+txt);
         }
