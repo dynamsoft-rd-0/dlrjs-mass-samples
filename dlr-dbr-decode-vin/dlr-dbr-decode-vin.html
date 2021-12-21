@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <button id="btn-scan">scan</button>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@2.0.3/dist/dce.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@8.8.3/dist/dbr.js" data-license="t0068MgAAAAUicJ7A2vdoJ1j8ozayO5p8fY/I5LQFtYSax9ANcLPLbOnrLfPlSe9KjA+yJ4VOnTlpptVG8y1KwtkKcI8Ld1A="></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-label-recognizer@2.2.0/dist/dlr.js" data-license="t0068MgAAAD1yJ4mLyR0p4tn7Q7Vf940nAIQDMt85iywtwELN9GAZjajyTv6dd1N44h/uH7aig66hNk5a5mDXeKX8qwXHuts="></script>
+    <script>
+
+        let barcodeReader;
+        let labelRecognizer;
+        let cameraEnhancer;
+
+        let pReady;
+
+        let openRound = 0;
+
+        document.getElementById('btn-scan').addEventListener('click',async()=>{
+
+            // init instance, may take some seconds
+            await (pReady = pReady || (async()=>{
+                const p1 = (async()=>{
+                    barcodeReader = await Dynamsoft.DBR.BarcodeReader.createInstance();
+                    // https://www.dynamsoft.com/barcode-reader/programming/javascript/user-guide/?ver=latest#getting-started---hello-world
+                    // refer: https://www.dynamsoft.com/blog/imaging/barcode/scanning-vin-codes-barcode-reader/
+                    await barcodeReader.initRuntimeSettingsWithString(JSON.stringify({
+                        "ImageParameter": {
+                            "BarcodeFormatIds": [ "BF_CODE_39_EXTENDED", "BF_QR_CODE", "BF_DATAMATRIX" ],
+                            "DeblurLevel": 0,
+                            "ExpectedBarcodesCount": 1,
+                            "LocalizationModes": [
+                                {
+                                    "Mode": "LM_CONNECTED_BLOCKS"
+                                }
+                            ],
+                            "Name": "Test",
+                        },
+                        "Version": "3.0"
+                    }));
+                })();
+                const p2 = (async()=>{
+                    // https://www.dynamsoft.com/label-recognition/programming/javascript/user-guide.html?ver=latest
+                    labelRecognizer = await Dynamsoft.DLR.LabelRecognizer.createInstance();
+                    labelRecognizer.updateRuntimeSettingsFromString('video-vin_na'); // or 'video-vin' ?
+                    
+                    const rtSettings = JSON.parse(await labelRecognizer.outputRuntimeSettingsToString());
+                    rtSettings.ReferenceRegionArray[0].Localization = {
+                        FirstPoint : [ 0, 0 ],
+                        FourthPoint : [ 0, 100 ],
+                        MeasuredByPercentage : 1,
+                        SecondPoint : [ 100, 0 ],
+                        SourceType : 'LST_MANUAL_SPECIFICATION',
+                        ThirdPoint : [ 100, 100 ]
+                    };
+                    rtSettings.LabelRecognizerParameterArray[0].ReferenceRegionNameArray = [];
+                    labelRecognizer.updateRuntimeSettingsFromString(JSON.stringify(rtSettings));
+                })();;
+                const p3 = (async()=>{
+                    // https://www.dynamsoft.com/camera-enhancer/docs/programming/javascript/user-guide/?ver=latest
+                    Dynamsoft.DCE.CameraEnhancer.defaultUIElementURL = 'dce.ui.html';
+                    cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance();
+                })();
+                await Promise.all([p1,p2,p3]);
+            })());
+
+            if(cameraEnhancer.isOpen()){ return; }
+
+
+
+            console.log('start video');
+            const thisOpenRound = ++openRound;
+            await cameraEnhancer.open(true); // open and show ui
+
+            let mapPotentialVins = {};
+            let imgRound = 0;
+
+            let pCurFrame = null;
+            let bCurFrameDecoded = true;
+            let bCurFrameRecognized = true;
+
+            const isNeedExist = ()=> !cameraEnhancer.isOpen() || thisOpenRound != openRound;
+
+            const getNewFrame = ()=>{
+                // the region HtmlElement defined in `id="my-region"` of `dce.ui.html`
+                pCurFrame = cameraEnhancer.getFrame({
+                    regionLeft: 0,
+                    regionTop: 40,
+                    regionRight: 100,
+                    regionBottom: 60,
+                    regionMeasuredByPercentage: true
+                });
+                bCurFrameDecoded = false;
+                bCurFrameRecognized = false;
+                ++imgRound;
+                console.log(`imgRound: ${imgRound}`);
+            };
+
+            // Wait some time to let CPU take a break.
+            // Set it to 0 if want quick.
+            // Set it bigger if want CPU relax more.
+            const relaxCPU = async(duration)=> new Promise(r=>setTimeout(r,duration));
+
+            const loopDecode = async()=>{
+                if(isNeedExist()){ return; }
+
+                if(bCurFrameDecoded){ getNewFrame(); }
+                const thisImgRound = imgRound;
+
+                const cvs = (await pCurFrame).canvas;
+                bCurFrameDecoded = true;
+
+                console.log(`round ${thisImgRound} img loopDecode`);
+                const results = await barcodeReader.decode(cvs);
+                if(results.length){
+                    const txt = results[0].barcodeText;
+
+                    // The 17 Digits Are Prefixed With an `I` 
+                    if(18 === txt.length && txt.startsWith('I')){ txt = txt.substring(1); }
+
+                    if(17 === txt.length){
+                        console.log(`round ${thisImgRound} barcode: ${txt}`);
+                        if(mapPotentialVins[txt]){
+                            mapPotentialVins[txt].push(imgRound);
+                            if(2 == mapPotentialVins[txt].length){
+                                alert(txt);
+                            }
+                        }else{
+                            mapPotentialVins[txt] = [imgRound];
+                        }
+                    }
+                }
+
+                await relaxCPU(100);
+
+                loopDecode();
+            };
+
+            const loopRecognize = async()=>{
+                if(isNeedExist()){ return; }
+
+                if(bCurFrameRecognized){ getNewFrame(); }
+                const thisImgRound = imgRound;
+
+                const cvs = (await pCurFrame).canvas;
+                bCurFrameRecognized = true;
+
+                console.log(`round ${thisImgRound} img loopRecognize`);
+                const results = await labelRecognizer.recognize(cvs);
+                if(results.length){
+                    const lineResults = results[0].lineResults;
+                    if(lineResults.length){
+                        const txt = lineResults[0].text;
+                        console.log(`round ${thisImgRound} label: ${txt}`);
+                        if(mapPotentialVins[txt]){
+                            mapPotentialVins[txt].push(imgRound);
+                            if(2 == mapPotentialVins[txt].length){
+                                alert(txt);
+                            }
+                        }else{
+                            mapPotentialVins[txt] = [imgRound];
+                        }
+                    }
+                }
+
+                await relaxCPU(100);
+
+                loopRecognize();
+            };
+
+            loopDecode();
+            loopRecognize();
+        });
+    </script>
+</body>
+</html>
