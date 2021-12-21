@@ -56,7 +56,7 @@
                         ThirdPoint : [ 100, 100 ]
                     };
                     rtSettings.LabelRecognizerParameterArray[0].ReferenceRegionNameArray = [];
-                    labelRecognizer.updateRuntimeSettingsFromString(JSON.stringify(rtSettings));
+                    await labelRecognizer.updateRuntimeSettingsFromString(JSON.stringify(rtSettings));
                 })();;
                 const p3 = (async()=>{
                     // https://www.dynamsoft.com/camera-enhancer/docs/programming/javascript/user-guide/?ver=latest
