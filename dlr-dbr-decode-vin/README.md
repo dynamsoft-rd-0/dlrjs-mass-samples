@@ -1,1 +1,1 @@
-https://dynamsoft-rd-0.github.io/dlrjs-mass-samples/dlr-dbr-decode-vin/dlr-dbr-decode-vin.html
+https://dynamsoft-rd-0.github.io/dlrjs-mass-samples/dlr-dbr-decode-vin/index.html
