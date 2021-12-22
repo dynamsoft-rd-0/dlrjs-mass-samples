@@ -117,7 +117,7 @@
                 console.log(`round ${thisImgRound} img loopDecode`);
                 const results = await barcodeReader.decode(cvs);
                 if(results.length){
-                    const txt = results[0].barcodeText;
+                    let txt = results[0].barcodeText;
 
                     // The 17 Digits Are Prefixed With an `I` 
                     if(18 === txt.length && txt.startsWith('I')){ txt = txt.substring(1); }
