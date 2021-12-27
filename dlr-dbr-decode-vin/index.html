@@ -3,31 +3,92 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        .capture {
-            position: absolute;
+        .upload {
+            position: fixed;
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 999;
+            z-index: 1;
             width: 60px;
             height: 60px;
             border-radius: 50%;
             border: 3px solid white;
             text-align: center;
-            display: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        .capture div {
+        .upload>div {
             width: 55px;
             height: 55px;
             border-radius: 50%;
             background-color: white;
             line-height: 55px;
         }
+
+        .div-result-mask{
+            width:100%;
+            height:100%;
+            position:fixed;
+            left:0;
+            top:0;
+            background:rgba(255,255,255,0.9);
+            display:flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+        }
+        .div-result{
+            width: 340px;
+            height: 24px;
+            padding: 1px;
+            box-sizing: border-box;
+            display: flex;
+        }
+        .div-result>div{
+            width:18px;
+            height:22px;
+            position:relative;
+            margin: 1px;
+            box-sizing: border-box;
+        }
+        .div-result>div>input{
+            width:18px;
+            height:22px;
+            box-sizing: border-box;
+            position:absolute;
+            bottom: -24px;
+        }
+        .div-result>div>div{
+            width:100%;
+            height:100%;
+            box-sizing: border-box;
+            background: #ddd;
+            border-radius: 3px;
+            user-select: none;
+        }
+        .div-result>div>div.top0{
+            position:absolute;
+            top:-24px;
+        }
+        .div-result>div>div.top1{
+            position:absolute;
+            top:-48px;
+        }
+        .div-result>div>div.top2{
+            position:absolute;
+            top:-72px;
+        }
     </style>
 </head>
 <body>
     <button id="btn-scan">scan</button>
-    <div class="capture"><div>upload</div></div>
+    <div id="div-upload" class="div-upload" style="display:none;"><div>upload</div></div>
+    <div id="div-result-mask" class="div-result-mask" style="display:none;">
+        <div class="div-tip">Click the letter to correct the result:</div>
+        <div id='div-result' class='div-result'></div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@2.0.3/dist/dce.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@8.8.3/dist/dbr.js" data-license="t0068MgAAAAUicJ7A2vdoJ1j8ozayO5p8fY/I5LQFtYSax9ANcLPLbOnrLfPlSe9KjA+yJ4VOnTlpptVG8y1KwtkKcI8Ld1A="></script>
     <script src="https://cdn.jsdelivr.net/npm/dynamsoft-label-recognizer@2.2.0/dist/dlr.js" data-license="t0068MgAAAD1yJ4mLyR0p4tn7Q7Vf940nAIQDMt85iywtwELN9GAZjajyTv6dd1N44h/uH7aig66hNk5a5mDXeKX8qwXHuts="></script>
@@ -42,8 +103,130 @@
 
         let openRound = 0;
 
-        const divCapture = document.querySelector('.capture div');
+        let pPause = null;
+        let funcContinue = null;
 
+        // click to hide result
+        document.getElementById('div-result-mask').addEventListener('click',async function(ev){
+            if(this !== ev.target){ return; }
+
+            let txt = '';
+            const divLineResult = document.getElementById('div-result');
+            const clds = divLineResult.children;
+            for(let i = 0; i < clds.length; ++i){
+                txt += clds[i].children[0].innerText;
+            }
+
+            document.getElementById('div-result').innerHTML = '';
+            this.style.display = 'none';
+
+            alert(txt);
+
+            //continue
+            funcContinue();
+            pPause = null;
+            funcContinue = null;
+        });
+
+        const funcSetCharValue = (charDiv0, char/*nullable*/)=>{
+            if(char){
+                charDiv0.innerText = char;
+            }
+            const divCharOuter = charDiv0.parentElement;
+            divCharOuter.classList.remove('expand');
+            divCharOuter.innerHTML = '';
+            divCharOuter.appendChild(charDiv0);
+        };
+
+        const showResult = (txt)=>{
+            if(17 !== txt.length){
+                console.error('the txt length should be 17');
+                return;
+            }
+
+            const divLineResult = document.getElementById('div-result');
+            divLineResult.innerHTML = '';
+            for(let i = 0; i < 17; ++i){
+                const divCharOuter = document.createElement('div');
+
+                const charDiv0 = document.createElement('div');
+                charDiv0.innerText = txt[i];
+
+                charDiv0.addEventListener('click',()=>{
+                    if(!divCharOuter.classList.contains('expand')){ // not expanded
+                        // shrink other expanded _charDiv0
+                        const divCharOuters = divLineResult.children;
+                        for(let i = 0; i < divCharOuters.length; ++i){
+                            if(divCharOuters[i].classList.contains('expand')){
+                                const _charDiv0 = divCharOuters[i].children[0];
+                                funcSetCharValue(_charDiv0);
+                            }
+                        }
+
+                        const ipt = document.createElement('input');
+                        ipt.addEventListener('change',function(){ 
+                            if(0 === this.value.length){
+                                // do nothing, just hide
+                                funcSetCharValue(charDiv0);
+                            }
+                            else{
+                                // this.value.length >= 1, just use last charcter
+                                let value = this.value.substring(this.value.length-1).toUpperCase();
+                                funcSetCharValue(charDiv0, value);
+                            }
+                        });
+                        divCharOuter.appendChild(ipt);
+
+                        const oriChar = charDiv0.innerText.trim();
+                        let possibleChars = [];
+                        if('A' === oriChar){
+                            possibleChars.push('4');
+                        }else if('4' === oriChar){
+                            possibleChars.push('A');
+                        }else if('3' === oriChar){
+                            possibleChars.push('5','S');
+                        }else if('5' === oriChar){
+                            possibleChars.push('3','S');
+                        }else if('S' === oriChar){
+                            possibleChars.push('3','5');
+                        }else if('B' === oriChar){
+                            possibleChars.push('8');
+                        }else if('8' === oriChar){
+                            possibleChars.push('B');
+                        }else if('P' === oriChar){
+                            possibleChars.push('E');
+                        }else if('E' === oriChar){
+                            possibleChars.push('P');
+                        }
+                        for(let i = 0; i < possibleChars.length && i <= 2; ++i){
+                            const charDivI = document.createElement('div');
+                            const possibleChar = possibleChars[i];
+                            charDivI.classList.add('top'+i);
+                            charDivI.innerText = possibleChar;
+                            charDivI.addEventListener('click',()=>{
+                                funcSetCharValue(charDiv0, possibleChar);
+                            });
+                            divCharOuter.appendChild(charDivI);
+                        }
+
+                        divCharOuter.classList.add('expand');
+                    }else{ // already expanded
+                        funcSetCharValue(charDiv0);
+                    }
+                });
+
+                divCharOuter.appendChild(charDiv0);
+
+                divLineResult.appendChild(divCharOuter);
+            }
+
+            document.getElementById('div-result-mask').style.display='';
+
+            // pause decode and recoginze
+            pPause = new Promise(r=>{ funcContinue = r; });
+        };
+
+        // click to start scan
         document.getElementById('btn-scan').addEventListener('click',async()=>{
             // init instance, may take some seconds
             await (pReady = pReady || (async()=>{
@@ -95,9 +278,6 @@
             console.log('start video');
             const thisOpenRound = ++openRound;
             await cameraEnhancer.open(true); // open and show ui
-            document.querySelector('.capture').style.display = 'flex'
-            document.querySelector('.capture').style.justifyContent = 'center'
-            document.querySelector('.capture').style.alignItems = 'center'
 
             let mapPotentialVins = {};
             let imgRound = 0;
@@ -128,7 +308,16 @@
             // Set it bigger if want CPU relax more.
             const relaxCPU = async(duration)=> new Promise(r=>setTimeout(r,duration));
 
+            const pushAndCheckResultTxt = (txt)=>{
+                mapPotentialVins[txt].push(imgRound);
+                if(2 == mapPotentialVins[txt].length && !isNeedExist()){
+                    showResult(txt);
+                    mapPotentialVins = {}; // let map empty
+                }
+            };
+
             const loopDecode = async()=>{
+                await pPause;
                 if(isNeedExist()){ return; }
 
                 if(bCurFrameDecoded){ getNewFrame(); }
@@ -148,10 +337,7 @@
                     if(17 === txt.length){
                         console.log(`round ${thisImgRound} barcode: ${txt}`);
                         if(mapPotentialVins[txt]){
-                            mapPotentialVins[txt].push(imgRound);
-                            if(2 == mapPotentialVins[txt].length){
-                                alert(txt);
-                            }
+                            pushAndCheckResultTxt(txt);
                         }else{
                             mapPotentialVins[txt] = [imgRound];
                         }
@@ -168,6 +354,7 @@
             let lastRecognizedCvs = null;
             let lastRecognizedTxt = null;
             const loopRecognize = async()=>{
+                await pPause;
                 if(isNeedExist()){ return; }
 
                 if(bCurFrameRecognized){ getNewFrame(); }
@@ -182,14 +369,12 @@
                     const lineResults = results[0].lineResults;
                     if(lineResults.length){
                         let txt = lineResults[0].text;
+                        if(txt.startsWith('V1N')){ txt = txt.substring(3); }
                         if(19 === txt.length){ txt = txt.substring(1,18); } // && txt.charAt(0) === txt.charAt(18)
                         if(17 === txt.length){
                             console.log(`round ${thisImgRound} label: ${txt}`);
                             if(mapPotentialVins[txt]){
-                                mapPotentialVins[txt].push(imgRound);
-                                if(2 == mapPotentialVins[txt].length){
-                                    alert(txt);
-                                }
+                                pushAndCheckResultTxt(txt);
                             }else{
                                 mapPotentialVins[txt] = [imgRound];
                             }
@@ -223,18 +408,22 @@
                     imgName = 'NoResult';
                 }
                 cvs.toBlob(async(blob)=>{
-                    let fd = new FormData()
-                    fd.append('imgName', imgName+'-'+Date.now()+'.jpg')
-                    fd.append('imgBinary', blob)
-                    const rep = await fetch('https://officecn.dynamsoft.com:247/uploadImg/uploadImg.ashx',{method:"POST",body:fd});
+                    let fd = new FormData();
+                    fd.append('imgName', imgName+'-'+Date.now()+'.jpg');
+                    fd.append('imgBinary', blob);
+                    const rep = await fetch('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',{method:"POST",body:fd});
                     alert(await rep.text());
                 })
-            }
+            };
 
-            divCapture.addEventListener('click', funcUpload)
+
+            const divUpload = document.getElementById('div-upload');
+            divUpload.addEventListener('click', funcUpload);
             document.querySelector('.dce-btn-close').addEventListener('click',()=>{
-                divCapture.removeEventListener('click', funcUpload);
+                divUpload.removeEventListener('click', funcUpload);
+                divUpload.style.display = 'none';
             })
+            divUpload.style.display = '';
         });
     </script>
 </body>
