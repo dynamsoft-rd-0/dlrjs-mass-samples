@@ -129,6 +129,7 @@
             funcContinue = null;
         });
 
+        // change specific char
         const funcSetCharValue = (charDiv0, char/*nullable*/)=>{
             if(char){
                 charDiv0.innerText = char;
@@ -139,6 +140,7 @@
             divCharOuter.appendChild(charDiv0);
         };
 
+        // show result dialog
         const showResult = (txt)=>{
             if(17 !== txt.length){
                 console.error('the txt length should be 17');
