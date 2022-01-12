@@ -87,7 +87,7 @@
     <button id="btn-scan">scan</button>
     <div id="div-upload" class="div-upload" style="display:none;"><div>upload</div></div>
     <div id="div-result-mask" class="div-result-mask" style="display:none;">
-        <div id="div-tip" class="div-tip"></div>
+        <div class="div-tip">Click the letter to correct the result:</div>
         <div id='div-result' class='div-result'></div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@2.0.3/dist/dce.js"></script>
@@ -106,9 +106,6 @@
 
         let pPause = null;
         let funcContinue = null;
-
-        const msgDbr = 'Result from barcode decoding:';
-        const msgDlr = 'Click the letter to correct the result from Label recognizing:';
 
         // click to hide result
         document.getElementById('div-result-mask').addEventListener('click',async function(ev){
@@ -144,7 +141,7 @@
         };
 
         // show result dialog
-        const showResult = (txt, msg)=>{
+        const showResult = (txt)=>{
             if(17 !== txt.length){
                 console.error('the txt length should be 17');
                 return;
@@ -226,8 +223,6 @@
                 divLineResult.appendChild(divCharOuter);
             }
 
-            document.getElementById('div-tip').innerText = msg;
-
             document.getElementById('div-result-mask').style.display='';
 
             // pause decode and recoginze
@@ -238,25 +233,6 @@
         document.getElementById('btn-scan').addEventListener('click',async()=>{
             // init instance, may take some seconds
             await (pReady = pReady || (async()=>{
-                const p1 = (async()=>{
-                    barcodeReader = await Dynamsoft.DBR.BarcodeReader.createInstance();
-                    // https://www.dynamsoft.com/barcode-reader/programming/javascript/user-guide/?ver=latest#getting-started---hello-world
-                    // refer: https://www.dynamsoft.com/blog/imaging/barcode/scanning-vin-codes-barcode-reader/
-                    await barcodeReader.initRuntimeSettingsWithString(JSON.stringify({
-                        "ImageParameter": {
-                            "BarcodeFormatIds": [ "BF_CODE_39_EXTENDED", "BF_QR_CODE", "BF_DATAMATRIX" ],
-                            "DeblurLevel": 0,
-                            "ExpectedBarcodesCount": 1,
-                            "LocalizationModes": [
-                                {
-                                    "Mode": "LM_CONNECTED_BLOCKS"
-                                }
-                            ],
-                            "Name": "Test",
-                        },
-                        "Version": "3.0"
-                    }));
-                })();
                 const p2 = (async()=>{
                     // https://www.dynamsoft.com/label-recognition/programming/javascript/user-guide.html?ver=latest
                     labelRecognizer = await Dynamsoft.DLR.LabelRecognizer.createInstance();
@@ -279,7 +255,7 @@
                     Dynamsoft.DCE.CameraEnhancer.defaultUIElementURL = 'dce.ui.html';
                     cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance();
                 })();
-                await Promise.all([p1,p2,p3]);
+                await Promise.all([p2,p3]);
             })());
             if(cameraEnhancer.isOpen()){ return; }
 
@@ -316,47 +292,12 @@
             // Set it bigger if want CPU relax more.
             const relaxCPU = async(duration)=> new Promise(r=>setTimeout(r,duration));
 
-            const pushAndCheckResultTxt = (txt, msg)=>{
+            const pushAndCheckResultTxt = (txt)=>{
                 mapPotentialVins[txt].push(imgRound);
                 if(2 == mapPotentialVins[txt].length && !isNeedExist()){
-                    showResult(txt, msg);
+                    showResult(txt);
                     mapPotentialVins = {}; // let map empty
                 }
-            };
-
-            const loopDecode = async()=>{
-                await pPause;
-                if(isNeedExist()){ return; }
-
-                if(bCurFrameDecoded){ getNewFrame(); }
-                const thisImgRound = imgRound;
-
-                const cvs = (await pCurFrame).canvas;
-                bCurFrameDecoded = true;
-
-                console.log(`round ${thisImgRound} img decode`);
-                const results = await barcodeReader.decode(cvs);
-                if(results.length){
-                    let txt = results[0].barcodeText;
-
-                    // The 17 Digits Are Prefixed With an `I` 
-                    if(18 === txt.length && txt.startsWith('I')){ txt = txt.substring(1); }
-
-                    if(17 === txt.length){
-                        console.log(`round ${thisImgRound} barcode: ${txt}`);
-                        if(mapPotentialVins[txt]){
-                            pushAndCheckResultTxt(txt, msgDbr);
-                        }else{
-                            mapPotentialVins[txt] = [imgRound];
-                        }
-                    }else{
-                        console.log(`decode get unexpected result: ${txt}`);
-                    }
-                }
-
-                await relaxCPU(0);
-
-                loopDecode();
             };
 
             let lastRecognizedCvs = null;
@@ -382,7 +323,7 @@
                         if(17 === txt.length){
                             console.log(`round ${thisImgRound} label: ${txt}`);
                             if(mapPotentialVins[txt]){
-                                pushAndCheckResultTxt(txt, msgDlr);
+                                pushAndCheckResultTxt(txt);
                             }else{
                                 mapPotentialVins[txt] = [imgRound];
                             }
@@ -399,7 +340,6 @@
                 loopRecognize();
             };
 
-            loopDecode();
             loopRecognize();
 
 

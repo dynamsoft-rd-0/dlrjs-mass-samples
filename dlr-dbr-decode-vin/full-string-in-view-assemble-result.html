@@ -3,7 +3,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        .upload {
+        html,body{width:100%;height:100%;margin:0;}
+        .div-upload {
             position: fixed;
             bottom: 30px;
             left: 50%;
@@ -18,7 +19,7 @@
             justify-content: center;
             align-items: center;
         }
-        .upload>div {
+        .div-upload>div {
             width: 55px;
             height: 55px;
             border-radius: 50%;
@@ -85,16 +86,18 @@
 <body>
     <div>It will take some time to load resource for the first time.</div>
     <button id="btn-scan">scan</button>
-    <div id="div-upload" class="div-upload" style="display:none;"><div>upload</div></div>
+    <div id="div-upload" class="div-upload"><div>upload</div></div>
     <div id="div-result-mask" class="div-result-mask" style="display:none;">
-        <div id="div-tip" class="div-tip"></div>
+        <div class="div-tip">Click the letter to correct the result:</div>
         <div id='div-result' class='div-result'></div>
     </div>
+    <div id="div-result2" style="position:fixed;width:80%;left:10%;bottom:30%;background:rgba(255,255,255,0.9);z-index:3;"></div>
     <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@2.0.3/dist/dce.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@8.8.3/dist/dbr.js" data-license="t0068MgAAAAUicJ7A2vdoJ1j8ozayO5p8fY/I5LQFtYSax9ANcLPLbOnrLfPlSe9KjA+yJ4VOnTlpptVG8y1KwtkKcI8Ld1A="></script>
     <script src="https://cdn.jsdelivr.net/npm/dynamsoft-label-recognizer@2.2.0/dist/dlr.js" data-license="t0068MgAAAD1yJ4mLyR0p4tn7Q7Vf940nAIQDMt85iywtwELN9GAZjajyTv6dd1N44h/uH7aig66hNk5a5mDXeKX8qwXHuts="></script>
     <script src="https://cdn.jsdelivr.net/npm/eruda@2.4.1/eruda.min.js"></script>
     <script>
+        // style="display:none;"
         eruda.init();
         let barcodeReader;
         let labelRecognizer;
@@ -106,9 +109,6 @@
 
         let pPause = null;
         let funcContinue = null;
-
-        const msgDbr = 'Result from barcode decoding:';
-        const msgDlr = 'Click the letter to correct the result from Label recognizing:';
 
         // click to hide result
         document.getElementById('div-result-mask').addEventListener('click',async function(ev){
@@ -144,7 +144,7 @@
         };
 
         // show result dialog
-        const showResult = (txt, msg)=>{
+        const showResult = (txt)=>{
             if(17 !== txt.length){
                 console.error('the txt length should be 17');
                 return;
@@ -226,14 +226,67 @@
                 divLineResult.appendChild(divCharOuter);
             }
 
-            document.getElementById('div-tip').innerText = msg;
-
             document.getElementById('div-result-mask').style.display='';
 
             // pause decode and recoginze
             pPause = new Promise(r=>{ funcContinue = r; });
         };
 
+        let sameCount = 0;
+        const showResult2 = (txt)=>{
+            if(txt == document.getElementById('div-result2').innerText){
+                ++sameCount;
+                if(sameCount > 6){
+                    document.getElementById('div-result2').style.color = 'orange';
+                }
+            }else{
+                sameCount = 0;
+                document.getElementById('div-result2').style.color = '';
+                document.getElementById('div-result2').innerText = txt;
+            }
+        };
+
+
+        
+        function getLongestCommonSubsequence(str1, str2, minLen) {
+            let l1 = str1.length;
+            let l2 = str2.length;
+            let initArr = []
+            let maxLen = 0
+            let maxKey
+            
+            initArr = new Array(l1 + 1).fill(0).map(() => new Array(l2 + 1).fill(0))
+            
+            for (let m = 0; m < l1; m++) {
+                for (let n = 0; n < l2; n++) {
+                    if (str1[m] === str2[n]) {
+                        if (m == 0 || n == 0) {
+                            initArr[m][n] = 1
+                        } else {
+                            const value = initArr[m - 1][n - 1] + 1;
+                            initArr[m][n] = value;
+                            if(value > maxLen){
+                                maxLen = value;
+                                maxKey = n;
+                            }
+                        }
+                    }
+                }
+            }
+            let result = ''
+            for(let i = maxKey; i>maxKey-maxLen; i--) {
+                result += str2[i]
+            }
+            let ret = result.split('').reverse().join('')
+            if(maxLen < minLen) { return null } 
+
+            return ret;
+        }
+
+
+
+
+        
         // click to start scan
         document.getElementById('btn-scan').addEventListener('click',async()=>{
             // init instance, may take some seconds
@@ -260,7 +313,7 @@
                 const p2 = (async()=>{
                     // https://www.dynamsoft.com/label-recognition/programming/javascript/user-guide.html?ver=latest
                     labelRecognizer = await Dynamsoft.DLR.LabelRecognizer.createInstance();
-                    labelRecognizer.updateRuntimeSettingsFromString('video-vin'); // or 'video-vin_na' ?
+                    labelRecognizer.updateRuntimeSettingsFromString('video-vin'); // or 'video-vin'
                     
                     const rtSettings = JSON.parse(await labelRecognizer.outputRuntimeSettingsToString());
                     rtSettings.ReferenceRegionArray[0].Localization = {
@@ -271,7 +324,9 @@
                         SourceType : 'LST_MANUAL_SPECIFICATION',
                         ThirdPoint : [ 100, 100 ]
                     };
+                    rtSettings.TextAreaArray[0].GrayscaleTransformationModes[0]={Mode:"GTM_ORIGINAL"};
                     rtSettings.LabelRecognizerParameterArray[0].ReferenceRegionNameArray = [];
+                    rtSettings.LabelRecognizerParameterArray[0].LineStringLengthRange = [3,999];
                     await labelRecognizer.updateRuntimeSettingsFromString(JSON.stringify(rtSettings));
                 })();;
                 const p3 = (async()=>{
@@ -290,15 +345,26 @@
             let mapPotentialVins = {};
             let imgRound = 0;
 
-            let pCurFrame = null;
+            let curFrame = null;
             let bCurFrameDecoded = true;
             let bCurFrameRecognized = true;
+
+            const MAX_POTENTIAL_QUEUE_LEN = 6;
+            const MIN_MIN_MATCH_LEN = 3;
+            const MIN_MATCH_LEN = 5;
+            const MIN_MATCH_COUNT = 3;
+            let queuePotentialStrs = [];
+            let strTrustPart = "";
+            let lastTrustTime = 0;
+            let arrPotentialTrustPartChars = [];
+            let arrPotentialPreChars = [];
+            let arrPotentialSuffixChars = [];
 
             const isNeedExist = ()=> !cameraEnhancer.isOpen() || thisOpenRound != openRound;
 
             const getNewFrame = ()=>{
                 // the region HtmlElement defined in `id="my-region"` of `dce.ui.html`
-                pCurFrame = cameraEnhancer.getFrame({
+                curFrame = cameraEnhancer.getFrame({
                     regionLeft: 0,
                     regionTop: 40,
                     regionRight: 100,
@@ -316,10 +382,10 @@
             // Set it bigger if want CPU relax more.
             const relaxCPU = async(duration)=> new Promise(r=>setTimeout(r,duration));
 
-            const pushAndCheckResultTxt = (txt, msg)=>{
+            const pushAndCheckResultTxt = (txt)=>{
                 mapPotentialVins[txt].push(imgRound);
                 if(2 == mapPotentialVins[txt].length && !isNeedExist()){
-                    showResult(txt, msg);
+                    showResult(txt);
                     mapPotentialVins = {}; // let map empty
                 }
             };
@@ -331,7 +397,7 @@
                 if(bCurFrameDecoded){ getNewFrame(); }
                 const thisImgRound = imgRound;
 
-                const cvs = (await pCurFrame).canvas;
+                const cvs = curFrame.canvas;
                 bCurFrameDecoded = true;
 
                 console.log(`round ${thisImgRound} img decode`);
@@ -345,7 +411,7 @@
                     if(17 === txt.length){
                         console.log(`round ${thisImgRound} barcode: ${txt}`);
                         if(mapPotentialVins[txt]){
-                            pushAndCheckResultTxt(txt, msgDbr);
+                            pushAndCheckResultTxt(txt);
                         }else{
                             mapPotentialVins[txt] = [imgRound];
                         }
@@ -354,9 +420,51 @@
                     }
                 }
 
-                await relaxCPU(0);
+                await relaxCPU(100);
 
                 loopDecode();
+            };
+
+            let calcPotentialChars = (str, iStart, iEnd)=>{
+                const bSuffix = undefined != iEnd;
+                const arr = bSuffix ? arrPotentialSuffixChars : arrPotentialPreChars;
+
+                for(let i = iStart, j = 0;
+                    bSuffix ? i < iEnd : i >= 0;
+                    (bSuffix? ++i : --i), ++j
+                ){
+                    const c = str[i];
+                    if(arr[j]){
+                        if(arr[j][c]){
+                            ++arr[j][c];
+                        }else{
+                            arr[j][c] = 1;
+                        }
+                    }else{
+                        arr[j] = { [c]: 1 };
+                    }
+                }
+            };
+            let calcTrustPart = (bSuffix)=>{
+                const arr = bSuffix ? arrPotentialSuffixChars : arrPotentialPreChars;
+                while(arr.length){
+                    const chars = arr[0];
+                    let mostPossibleChar;
+                    let mostPossibleCharAppearCount = MIN_MATCH_COUNT - 1;
+                    for(let char in chars){
+                        const count = chars[char];
+                        if(count > mostPossibleCharAppearCount){
+                            mostPossibleChar = char;
+                            mostPossibleCharAppearCount = count;
+                        }
+                    }
+                    if(mostPossibleChar){
+                        strTrustPart = bSuffix ? strTrustPart + mostPossibleChar: mostPossibleChar + strTrustPart;
+                        arr.shift();
+                    }else{
+                        break;
+                    }
+                }
             };
 
             let lastRecognizedCvs = null;
@@ -366,31 +474,119 @@
                 if(isNeedExist()){ return; }
 
                 if(bCurFrameRecognized){ getNewFrame(); }
+                if(!curFrame){
+                    setTimeout(()=>{ loopRecognize(); },1000);
+                    return;
+                }
                 const thisImgRound = imgRound;
 
-                const cvs = (await pCurFrame).canvas;
+                const cvs = curFrame.canvas;
                 bCurFrameRecognized = true;
 
                 console.log(`round ${thisImgRound} img recognize`);
                 const results = await labelRecognizer.recognize(cvs);
                 if(results.length){
                     const lineResults = results[0].lineResults;
-                    if(lineResults.length){
+                    for(let iLine = 0; iLine < lineResults.length; ++iLine){
                         let txt = lineResults[0].text;
-                        if(txt.startsWith('V1N')){ txt = txt.substring(3); }
-                        if(19 === txt.length){ txt = txt.substring(1,18); } // && txt.charAt(0) === txt.charAt(18)
-                        if(17 === txt.length){
-                            console.log(`round ${thisImgRound} label: ${txt}`);
-                            if(mapPotentialVins[txt]){
-                                pushAndCheckResultTxt(txt, msgDlr);
-                            }else{
-                                mapPotentialVins[txt] = [imgRound];
+                        console.log(`round ${thisImgRound} label: ${txt}`)//test
+
+                        //if(txt.startsWith('V1N')){ txt = txt.substring(3); }
+                        //if(19 === txt.length){ txt = txt.substring(1,18); } // && txt.charAt(0) === txt.charAt(18)
+
+                        for(let _txt of queuePotentialStrs){
+                            const lcs = getLongestCommonSubsequence(_txt, txt, MIN_MIN_MATCH_LEN);
+                            if(lcs){
+                                if(lcs.length > strTrustPart.length){
+                                    strTrustPart = lcs;
+                                    lastTrustTime = Date.now();
+                                }else{
+                                    const commonWithTrustPart = getLongestCommonSubsequence(lcs, strTrustPart, Math.min(MIN_MATCH_LEN, Math.max(strTrustPart.length, MIN_MIN_MATCH_LEN)));
+                                    if(!commonWithTrustPart){
+                                        strTrustPart = lcs;
+                                        lastTrustTime = Date.now();
+                                    }
+                                }
                             }
-                        }else{
-                            console.log(`recognize get unexpected result: ${txt}`);
                         }
+                        queuePotentialStrs.push(txt);
+                        arrPotentialTrustPartChars = [];
+                        for(let c of strTrustPart){
+                            arrPotentialTrustPartChars.push({[c]:3});
+                        }
+                        arrPotentialPreChars = [];
+                        arrPotentialSuffixChars = [];
+                        let __lastLCS;//debug
+                        for(let _txt of queuePotentialStrs){
+                            const lcs = getLongestCommonSubsequence(_txt, strTrustPart, Math.min(MIN_MATCH_LEN,Math.max(strTrustPart.length,3)));
+                            __lastLCS = lcs;//debug
+                            if(lcs){
+                                lastTrustTime = Date.now();
+
+                                const posInTrust = strTrustPart.indexOf(lcs);
+                                const posInTxt = _txt.indexOf(lcs);
+                                const commonPos = Math.min(posInTrust, posInTxt);
+                                for(let i = posInTrust - commonPos, j = posInTxt - commonPos; i < strTrustPart.length && j < _txt.length; ++i, ++j){
+                                    const c = _txt[j];
+                                    if(arrPotentialTrustPartChars[i][c]){
+                                        ++arrPotentialTrustPartChars[i][c];
+                                    }else{
+                                        arrPotentialTrustPartChars[i][c] = 1;
+                                    }
+                                }
+                                calcPotentialChars(_txt, posInTxt - posInTrust - 1);
+                                calcPotentialChars(_txt, posInTxt + (strTrustPart.length - posInTrust), _txt.length);
+                            }
+                        }
+                        console.log(`__lastLCS: ${__lastLCS}`);//debug
+
+                        let _strTrustPart = '';
+                        for(let i = 0; i < arrPotentialTrustPartChars.length; ++i){
+                            const chars = arrPotentialTrustPartChars[i];
+                            let mostPossibleChar;
+                            let mostPossibleCharAppearCount = 0;
+                            for(let c in chars){
+                                if(chars[c] > mostPossibleCharAppearCount){
+                                    mostPossibleChar = c;
+                                    mostPossibleCharAppearCount = chars[c];
+                                }
+                            }
+                            _strTrustPart += mostPossibleChar;
+                        }
+                        strTrustPart = _strTrustPart;
+                        calcTrustPart();
+                        calcTrustPart(true);
+
+                        if(queuePotentialStrs.length > MAX_POTENTIAL_QUEUE_LEN){
+                            queuePotentialStrs.shift();
+                        }
+
+                        // if(17 === txt.length){
+                        //     console.log(`round ${thisImgRound} label: ${txt}`);
+                        //     if(mapPotentialVins[txt]){
+                        //         pushAndCheckResultTxt(txt);
+                        //     }else{
+                        //         mapPotentialVins[txt] = [imgRound];
+                        //     }
+                        // }else{
+                        //     console.log(`recognize get unexpected result: ${txt}`);
+                        // }
+
+                        if(lastTrustTime < Date.now() - 3000){
+                            // clear too old txt
+                            strTrustPart = '';
+                        }
+                        showResult2(strTrustPart);
+
                         lastRecognizedCvs = cvs;
                         lastRecognizedTxt = txt;
+                    }
+                }else{
+                    if(lastTrustTime < Date.now() - 3000){
+                        // clear too old txt
+                        queuePotentialStrs = [];
+                        strTrustPart = '';
+                        showResult2('');
                     }
                 }
 
@@ -399,7 +595,7 @@
                 loopRecognize();
             };
 
-            loopDecode();
+            //loopDecode();
             loopRecognize();
 
 
@@ -412,7 +608,7 @@
                     cvs = lastRecognizedCvs;
                     imgName = lastRecognizedTxt;
                 }else{
-                    cvs = await pCurFrame;
+                    cvs = curFrame.canvas;
                     imgName = 'NoResult';
                 }
                 cvs.toBlob(async(blob)=>{
