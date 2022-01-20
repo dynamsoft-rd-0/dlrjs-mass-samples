@@ -25,7 +25,7 @@
             scanner.onFrameRead = async results => console.log(results);
             scanner.onUniqueRead = txt => //alert("onUniqueRead: "+txt);
             {
-                if(/[A-Z]<<[A-Z]/.test(txt)){
+                if(txt.endsWith('<') && /[A-Z]<<[A-Z]/.test(txt)){
                     document.getElementById('div-result-line1').value = txt;
                 }else{
                     document.getElementById('div-result-line2').value = txt;
