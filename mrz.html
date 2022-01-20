@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    
+    <button id="btn-openscanner">open scanner</button>
+    <textarea disabled id="div-result-line1" style="position:fixed;width:100vw;height:20px;box-sizing:border-box;left:0;bottom:20px;background:white;z-index:1;"></textarea>
+    <textarea disabled id="div-result-line2" style="position:fixed;width:100vw;height:20px;box-sizing:border-box;left:0;bottom:0;background:white;z-index:1;"></textarea>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@2.0.3/dist/dce.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/keillion-dynamsoft-label-recognizer@0.20220120172557.0/dist/dlr.js" data-license=""></script>
+    <script>
+    
+    let scanner;
+    document.getElementById('btn-openscanner').addEventListener("click", async()=>{
+        if(!scanner){
+            scanner = await Dynamsoft.DLR.LabelRecognizer.createInstance();
+            await scanner.updateRuntimeSettingsFromString("video-mrz");
+            let settings = JSON.parse(await scanner.outputRuntimeSettingsToString());
+            await scanner.updateRuntimeSettingsFromString(settings);
+
+            
+            scanner.intervalTime = 1000;
+            scanner.onFrameRead = async results => console.log(results);
+            scanner.onUniqueRead = txt => //alert("onUniqueRead: "+txt);
+            {
+                if(txt.endsWith('<')){
+                    document.getElementById('div-result-line1').value = txt;
+                }else{
+                    document.getElementById('div-result-line2').value = txt;
+                }
+            };
+
+            let dce = await Dynamsoft.DCE.CameraEnhancer.createInstance();
+            await dce.setUIElement(Dynamsoft.DLR.LabelRecognizer.defaultUIElementURL);
+            scanner.cameraEnhancer = dce;
+        }
+        await scanner.startScanning(true);
+    });
+    </script>
+</body>
+</html>
