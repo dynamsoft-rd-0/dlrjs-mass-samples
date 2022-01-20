@@ -21,7 +21,7 @@
             await scanner.updateRuntimeSettingsFromString(settings);
 
             
-            scanner.intervalTime = 1000;
+            //scanner.intervalTime = 1000;// to slow down
             scanner.onFrameRead = async results => console.log(results);
             scanner.onUniqueRead = txt => //alert("onUniqueRead: "+txt);
             {
