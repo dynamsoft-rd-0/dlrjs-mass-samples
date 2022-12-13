@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get_Frame_Tool</title>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@3.1.0/dist/dce.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-document-normalizer@1.0.11/dist/ddn.js"></script>
+</head>
+<body>
+    <select id="proSelect">
+        <option value="dce">Only DCE</option>
+        <option value="ddn">Use DDN</option>
+    </select>
+    <button id="openCamera">open camera</button><br>
+    Set number : <input id="getFrameNumIpt" type="number" value="8" style="width: 50px;"> 
+    <button id="getFrameBtn">get frame</button>
+    <span id="capturing" style="display: none;margin-left: 5px;">Capturing...</span>
+    <div id="dceUIContainer" style="width:100%;height:70vh;margin-top: 10px;"></div>
+    <script>
+        Dynamsoft.DDN.DocumentNormalizer.license = "DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9";
+
+        let downloadImg = [];
+        let getFrameNum = 8;
+        let selectedPro = "dce";
+        let dce = null;
+        let ddn = null;
+
+        let actionMap = {
+            dce() {dce.open(true);},
+            ddn() {useDdn();},
+        };
+
+        (async()=>{
+            dce = await Dynamsoft.DCE.CameraEnhancer.createInstance();
+            await dce.setUIElement(Dynamsoft.DCE.CameraEnhancer.defaultUIElementURL);
+            document.getElementById("dceUIContainer").appendChild(dce.getUIElement());
+        })();
+
+        document.querySelector("#getFrameNumIpt").addEventListener("change", (e)=>{
+            getFrameNum = +e.target.value;
+        })
+
+        document.querySelector("#getFrameBtn").addEventListener("click", async ()=>{
+            document.querySelector("#capturing").style.display = "inline";
+            await getImages();
+            document.querySelector("#capturing").style.display = "none";
+        })
+
+        async function getImages() {
+            await this.saveImages();
+            const zip = new JSZip();
+            for(let i=0;i<downloadImg.length;i++) {
+                zip.file(downloadImg[i].name, downloadImg[i].blob);
+            }
+            const content = await zip.generateAsync({type: "blob"});
+            saveAs(content, `screenshot-${getDate()}.zip`);
+            downloadImg = [];
+        }
+
+        async function saveImages() {
+            return new Promise(async (rs,rj)=>{
+                let index = 0;
+                while(index < getFrameNum) {
+                const cvs = dce.getFrame().toCanvas();
+                if (cvs != null) {
+                    const blob = cvs.convertToBlob ? await cvs.convertToBlob() : await new Promise(resolve => {
+                    cvs.toBlob(blob => resolve(blob));
+                    });
+                    downloadImg.push({ name: "Screenshot - " + new Date().toISOString().replace(/\:/g, "-") + ".png", blob});
+                    index++;
+                }
+                }
+                rs();
+            })
+        }
+
+        function getDate() {
+            const date = new Date();
+            return `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
+        }
+
+        document.querySelector("#proSelect").addEventListener("change", (e) => {
+            selectedPro = e.target.value;
+        })
+
+        document.querySelector("#openCamera").addEventListener("click", async () => {
+            await actionMap[selectedPro]();
+            document.querySelector("#proSelect").disabled = true;
+        })
+
+        async function useDce() {
+            await dce.open(true);
+        }
+
+        async function useDdn() {
+            if(!ddn) {
+                ddn = await Dynamsoft.DDN.DocumentNormalizer.createInstance();
+                await ddn.setImageSource(dce, {resultsHighlightBaseShapes: Dynamsoft.DCE.DrawingItem});
+                await ddn.startScanning(true);
+            } 
+        }
+    </script>
+</body>
+</html>
