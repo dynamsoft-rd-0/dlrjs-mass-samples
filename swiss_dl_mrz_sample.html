@@ -62,6 +62,7 @@
 
                     // Callback to MRZ recognizing result
                     recognizer.onImageRead = (results) => {
+                        console.log(results);
                         document.querySelector("#mrz-results").innerHTML = '';
                         if(results.length && results[0].lineResults[0].text.startsWith("FACHE")) {
                             parseMrzAndUpdateDom(results[0].lineResults);
