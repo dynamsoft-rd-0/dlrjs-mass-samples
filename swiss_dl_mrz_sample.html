@@ -38,6 +38,11 @@
         const handleResults = (results) => {
             console.log(results);
 
+            if(!results.length) {
+                document.querySelector("#mrz-results").innerHTML = 'No results.';
+                return;
+            }
+
             function parseSwissDLInfo(line1, line2) {
                 let parseResults = {};
                 parseResults["Date of birth"] = line1.substring(19,25);
