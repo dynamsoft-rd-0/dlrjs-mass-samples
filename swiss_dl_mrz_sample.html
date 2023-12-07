@@ -6,12 +6,16 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Swiss_DL_MRZ_sample</title>
-    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@3.3.5/dist/dce.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@3.3.9/dist/dce.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dynamsoft-label-recognizer@2.2.31/dist/dlr.js"></script>
 </head>
 
 <body>
     <button id="btn-open-recognize">Open MRZ Recognizer</button>
+    <div>
+        <label for="ipt-recognize-image">recognize an image: </label>
+        <input type="file" id="ipt-recognize-image" accept="image/jpeg,image/png,image/bmp,image/gif,image/svg+xml,image/x-icon,image/webp">
+    </div>
     <div id="model-loading" style="margin-top: 15px;"></div>
     <div id="div-ui-container" style="margin-top: 15px;height: 60vh;"></div>
     <div id="mrz-results" style="margin-top: 15px;"></div>
@@ -19,7 +23,6 @@
 
         let cameraEnhancer = null;
         let recognizer = null;
-        let promiseDLRReady;
 
         /** LICENSE ALERT - README 
          * To use the library, you need to first specify a license key using the API "license" as shown below.
@@ -32,71 +35,69 @@
          * LICENSE ALERT - THE END 
          */
 
-        document.getElementById('btn-open-recognize').addEventListener('click', async () => {
+        const handleResults = (results) => {
+            console.log(results);
+
+            function parseSwissDLInfo(line1, line2) {
+                let parseResults = {};
+                parseResults["Date of birth"] = line1.substring(19,25);
+                parseResults["Name"] = line2.substring(0, line2.indexOf("<<"));
+                parseResults["First Name"] = line2.substring(line2.indexOf("<<")+2, line2.length).replace(/</g, " ");
+                parseResults["Document type"] = "Swiss Driver License";
+                parseResults["Identifier"] = line1.substring(5,17);
+                return parseResults;
+            }
+
+            function parseMrzAndUpdateDom(results) {
+                let parseResults;
+                if (results.length === 2) {
+                    parseResults = parseSwissDLInfo(results[0].text, results[1].text);
+                }
+                document.querySelector("#mrz-results").innerHTML = '';
+                for(let info in parseResults) {
+                    let infoDiv = document.createElement('div');
+                    infoDiv.style.marginTop = "10px";
+                    infoDiv.innerHTML = info + " : " + parseResults[info];
+                    document.querySelector("#mrz-results").appendChild(infoDiv);
+                }
+            }
+            
+            document.querySelector("#mrz-results").innerHTML = '';
+            if(results.length && results[0].lineResults[0].text.startsWith("FACHE")) {
+                parseMrzAndUpdateDom(results[0].lineResults);
+            } else if(results.length && !results[0].lineResults[0].text.startsWith("FACHE")) {
+                document.querySelector("#mrz-results").innerHTML = 'Not Swiss Driver License.';
+            }
+        };
+        const init = async () => {
             try {
-                await (promiseDLRReady = promiseDLRReady || (async () => {
-                    Dynamsoft.DLR.LabelRecognizer.onResourcesLoadProgress = (resourcePath, progress) => {
-                        // In this event handler, you can display the loading progress of the model file.
-                        document.querySelector('#model-loading').innerHTML = "Model Loading..." + " " + (progress.loaded / progress.total).toFixed(2) * 100 + "%";
-                    }
-                    Dynamsoft.DLR.LabelRecognizer.onResourcesLoaded = (resourcePath) => {
-                        // In this event handler, you can close the visual cue if it was displayed.
-                        document.querySelector('#model-loading').innerHTML = "";
-                    };
-                    cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance();
-                    cameraEnhancer.on("cameraClose", () => {
-                        document.querySelector("#mrz-results").innerHTML = '';
-                    });
-                    cameraEnhancer.setVideoFit("cover");
+                Dynamsoft.DLR.LabelRecognizer.onResourcesLoadProgress = (resourcePath, progress) => {
+                    // In this event handler, you can display the loading progress of the model file.
+                    document.querySelector('#model-loading').innerHTML = "Model Loading..." + " " + (progress.loaded / progress.total).toFixed(2) * 100 + "%";
+                }
+                Dynamsoft.DLR.LabelRecognizer.onResourcesLoaded = (resourcePath) => {
+                    // In this event handler, you can close the visual cue if it was displayed.
+                    document.querySelector('#model-loading').innerHTML = "";
+                };
+                cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance();
+                cameraEnhancer.on("cameraClose", () => {
+                    document.querySelector("#mrz-results").innerHTML = '';
+                });
+                cameraEnhancer.setVideoFit("cover");
 
-                    recognizer = await Dynamsoft.DLR.LabelRecognizer.createInstance();
-                    await recognizer.setImageSource(cameraEnhancer, { resultsHighlightBaseShapes: Dynamsoft.DCE.DrawingItem });
-                    await recognizer.updateRuntimeSettingsFromString("video-mrz");
+                recognizer = await Dynamsoft.DLR.LabelRecognizer.createInstance();
+                await recognizer.setImageSource(cameraEnhancer, { resultsHighlightBaseShapes: Dynamsoft.DCE.DrawingItem });
 
-                    // const settings = JSON.parse(await recognizer.outputRuntimeSettingsToString());
-                    // settings.LabelRecognizerParameterArray[0].LineStringRegExPattern = "(FACHE[0-9]{12}(<<)[0-9]{2}[(01-12)][(01-31)][<]{5}){(30)}|([A-Z<]{30}){(30)}";
-                    // settings.TextAreaArray[0].LineStringRegExPattern = "(FACHE[0-9]{12}(<<)[0-9]{2}[(01-12)][(01-31)][<]{5}){(30)}|([A-Z<]{30}){(30)}";
-                    // await recognizer.updateRuntimeSettingsFromString(settings, true);
+                // const settings = JSON.parse(await recognizer.outputRuntimeSettingsToString());
+                // settings.LabelRecognizerParameterArray[0].LineStringRegExPattern = "(FACHE[0-9]{12}(<<)[0-9]{2}[(01-12)][(01-31)][<]{5}){(30)}|([A-Z<]{30}){(30)}";
+                // settings.TextAreaArray[0].LineStringRegExPattern = "(FACHE[0-9]{12}(<<)[0-9]{2}[(01-12)][(01-31)][<]{5}){(30)}|([A-Z<]{30}){(30)}";
+                // await recognizer.updateRuntimeSettingsFromString(settings, true);
 
-                    await document.getElementById('div-ui-container').appendChild(cameraEnhancer.getUIElement());
+                await document.getElementById('div-ui-container').appendChild(cameraEnhancer.getUIElement());
 
-                    // Callback to MRZ recognizing result
-                    recognizer.onImageRead = (results) => {
-                        console.log(results);
-                        document.querySelector("#mrz-results").innerHTML = '';
-                        if(results.length && results[0].lineResults[0].text.startsWith("FACHE")) {
-                            parseMrzAndUpdateDom(results[0].lineResults);
-                        } else if(results.length && !results[0].lineResults[0].text.startsWith("FACHE")) {
-                            document.querySelector("#mrz-results").innerHTML = 'Not Swiss Driver License.';
-                        }
-                    }
-
-                    function parseMrzAndUpdateDom(results) {
-                        let parseResults;
-                        if (results.length === 2) {
-                            parseResults = parseSwissDLInfo(results[0].text, results[1].text);
-                        }
-                        document.querySelector("#mrz-results").innerHTML = '';
-                        for(let info in parseResults) {
-                          let infoDiv = document.createElement('div');
-                          infoDiv.style.marginTop = "10px";
-                          infoDiv.innerHTML = info + " : " + parseResults[info];
-                          document.querySelector("#mrz-results").appendChild(infoDiv);
-                        }
-                    }
-
-                    function parseSwissDLInfo(line1, line2) {
-                        let parseResults = {};
-                        parseResults["Date of birth"] = line1.substring(19,25);
-                        parseResults["Name"] = line2.substring(0, line2.indexOf("<<"));
-                        parseResults["First Name"] = line2.substring(line2.indexOf("<<")+2, line2.length).replace(/</g, " ");
-                        parseResults["Document type"] = "Swiss Driver License";
-                        parseResults["Identifier"] = line1.substring(5,17);
-                        return parseResults;
-                    }
-                })());
-                await recognizer.startScanning(true);
-            } catch (ex) {
+                // Callback to MRZ recognizing result
+                recognizer.onImageRead = handleResults;
+            } catch(ex) {
                 let errMsg;
                 if (ex.message.includes("network connection error")) {
                     errMsg = "Failed to connect to Dynamsoft License Server: network connection error. Check your Internet connection or contact Dynamsoft Support (support@dynamsoft.com) to acquire an offline license.";
@@ -106,6 +107,21 @@
                 console.error(errMsg);
                 alert(errMsg);
             }
+        };
+        const promiseDLRReady = init();
+
+        document.getElementById('btn-open-recognize').addEventListener('click', async () => {
+            await promiseDLRReady;
+            await recognizer.updateRuntimeSettingsFromString("video-mrz");
+            await recognizer.startScanning(true);
+        })
+        document.getElementById('ipt-recognize-image').addEventListener('change', async function () {
+            await promiseDLRReady;
+            await recognizer.updateRuntimeSettingsFromString("mrz");
+            const file = this.files[0];
+            this.value = "";
+            const results = await recognizer.recognize(file);
+            handleResults(results);
         })
     </script>
 </body>
