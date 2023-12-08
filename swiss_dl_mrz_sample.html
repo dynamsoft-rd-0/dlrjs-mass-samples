@@ -20,9 +20,11 @@
     <div id="div-ui-container" style="margin-top: 15px;height: 60vh;"></div>
     <div id="mrz-results" style="margin-top: 15px;"></div>
     <script>
-
+        const uiContainer = document.getElementById('div-ui-container');
+        const resultsContainer = document.querySelector("#mrz-results");
         let cameraEnhancer = null;
         let recognizer = null;
+        let ui = null;
 
         /** LICENSE ALERT - README 
          * To use the library, you need to first specify a license key using the API "license" as shown below.
@@ -39,7 +41,7 @@
             console.log(results);
 
             if(!results.length) {
-                document.querySelector("#mrz-results").innerHTML = 'No results.';
+                resultsContainer.innerHTML = 'No results.';
                 return;
             }
 
@@ -58,20 +60,20 @@
                 if (results.length === 2) {
                     parseResults = parseSwissDLInfo(results[0].text, results[1].text);
                 }
-                document.querySelector("#mrz-results").innerHTML = '';
+                resultsContainer.innerHTML = '';
                 for(let info in parseResults) {
                     let infoDiv = document.createElement('div');
                     infoDiv.style.marginTop = "10px";
                     infoDiv.innerHTML = info + " : " + parseResults[info];
-                    document.querySelector("#mrz-results").appendChild(infoDiv);
+                    resultsContainer.appendChild(infoDiv);
                 }
             }
             
-            document.querySelector("#mrz-results").innerHTML = '';
+            resultsContainer.innerHTML = '';
             if(results.length && results[0].lineResults[0].text.startsWith("FACHE")) {
                 parseMrzAndUpdateDom(results[0].lineResults);
             } else if(results.length && !results[0].lineResults[0].text.startsWith("FACHE")) {
-                document.querySelector("#mrz-results").innerHTML = 'Not Swiss Driver License.';
+                resultsContainer.innerHTML = 'Not Swiss Driver License.';
             }
         };
         const init = async () => {
@@ -86,7 +88,7 @@
                 };
                 cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance();
                 cameraEnhancer.on("cameraClose", () => {
-                    document.querySelector("#mrz-results").innerHTML = '';
+                    resultsContainer.innerHTML = '';
                 });
                 cameraEnhancer.setVideoFit("cover");
 
@@ -98,7 +100,7 @@
                 // settings.TextAreaArray[0].LineStringRegExPattern = "(FACHE[0-9]{12}(<<)[0-9]{2}[(01-12)][(01-31)][<]{5}){(30)}|([A-Z<]{30}){(30)}";
                 // await recognizer.updateRuntimeSettingsFromString(settings, true);
 
-                await document.getElementById('div-ui-container').appendChild(cameraEnhancer.getUIElement());
+                ui = cameraEnhancer.getUIElement();
 
                 // Callback to MRZ recognizing result
                 recognizer.onImageRead = handleResults;
@@ -117,16 +119,30 @@
 
         document.getElementById('btn-open-recognize').addEventListener('click', async () => {
             await promiseDLRReady;
+            uiContainer.innerText = "";
+            uiContainer.appendChild(ui);
             await recognizer.updateRuntimeSettingsFromString("video-mrz");
-            await recognizer.startScanning(true);
+            await recognizer.startScanning();
         })
         document.getElementById('ipt-recognize-image').addEventListener('change', async function () {
-            await promiseDLRReady;
-            await recognizer.updateRuntimeSettingsFromString("mrz");
             const file = this.files[0];
-            this.value = "";
+            if (!file) return;
+
+            await promiseDLRReady;
+            recognizer.stopScanning();
+            uiContainer.innerText = "";
+            resultsContainer.innerText = "recognizing...";
+            await recognizer.updateRuntimeSettingsFromString("mrz");
+            recognizer.currentSettingsTemplate = null;
+            recognizer.ifSaveOriginalImageInACanvas = true;
             const results = await recognizer.recognize(file);
             handleResults(results);
+
+            const imageCanvas = recognizer.getOriginalImageInACanvas();
+            imageCanvas.style.width = "100%";
+            imageCanvas.style.height = "100%";
+            imageCanvas.style.objectFit = "contain";
+            uiContainer.appendChild(imageCanvas);
         })
     </script>
 </body>
