@@ -62,6 +62,7 @@
       let parsedResults = await parser.parse(text);
       console.log("parsedResults: ", parsedResults);
       let resultInfo = JSON.parse(parsedResults.jsonString).ResultInfo;
+      console.log(resultInfo);
       for (let fieldName of willShowFieldName) {
         let infoDiv = document.createElement('div');
         infoDiv.style.marginTop = "10px";
@@ -80,6 +81,10 @@
           let expiryMonth = parsedResults.getFieldValue("expiryMonth");
           let expiryDay = parsedResults.getFieldValue("expiryDay");
           infoDiv.innerText = `${fieldName} : ${expiryYear}-${expiryMonth}-${expiryDay}`;
+        } else if(fieldName === "sex") {
+          let sex = parsedResults.getFieldValue(fieldName);
+          if(!["female", "male"].includes(sex)) continue;
+          infoDiv.innerText = fieldName + " : " + parsedResults.getFieldValue(fieldName);
         } else {
           infoDiv.innerText = fieldName + " : " + parsedResults.getFieldValue(fieldName);
         }
