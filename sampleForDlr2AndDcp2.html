@@ -58,6 +58,7 @@
     })();
 
     async function parseMrzAndUpdateDom(text) {
+      console.log("text: ", text);
       let parsedResults = await parser.parse(text);
       console.log("parsedResults: ", parsedResults);
       let resultInfo = JSON.parse(parsedResults.jsonString).ResultInfo;
