@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Quickly recognize labels with Dynamsoft Label Recognizer from a live camera stream.">
+    <meta name="keywords" content="camera based label recognizing">
+    <title>Dynamsoft Label Recognize Sample - Hello World (recognizing via Camera)</title>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-core@3.0.32/dist/core.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-license@3.0.40/dist/license.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-utility@1.0.21/dist/utility.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-label-recognizer@3.0.30/dist/dlr.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-capture-vision-router@2.0.32/dist/cvr.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@4.0.1/dist/dce.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+</head>
+
+<body>
+    <h1 style="font-size: 1.5em;">Recognize Label from a Camera</h1>
+    <button id="btn-open-recognize" onclick="startCapturing()">Open Label Recognizer</button>
+    <span id="text-loading" style="display: none; color: red;margin-left: 10px;vertical-align: middle;">Loading Model...</span>
+    <div id="div-ui-container" style="margin-top: 10px;height: 500px;position: relative;">
+        <!-- <div style="position: absolute; top: 50%; transform: translateY(-50%); width: 100%; text-align: center; z-index: 1; display: none;">ABCDEFG1234567</div> -->
+    </div>
+    Results:
+    <br>
+    <div id="div-results-container" style="width: 100%; height: 10vh; overflow: auto;"></div>
+    <script>
+        let router = null;
+        let cameraEnhancer = null;
+        let promiseCVRReady = null;
+        let originalImageArr = [];
+        let downloadImg = [];
+
+        const cameraViewContainer = document.querySelector("#div-ui-container");
+        const resultsContainer = document.querySelector("#div-results-container");
+        const textLoading = document.querySelector("#text-loading");
+
+        /** LICENSE ALERT - README
+         * To use the library, you need to first specify a license key using the API "license" as shown below.
+         */
+        Dynamsoft.License.LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9");
+        /** 
+         * You can visit https://www.dynamsoft.com/customer/license/trialLicense?utm_source=github&product=dlr&package=js to get your own trial license good for 30 days. 
+         * Note that if you downloaded this sample from Dynamsoft while logged in, the above license key may already be your own 30-day trial license.
+         * For more information, see https://www.dynamsoft.com/label-recognition/programming/javascript/user-guide.html?ver=latest#specify-the-license or contact support@dynamsoft.com.
+         * LICENSE ALERT - THE END 
+         */
+        Dynamsoft.Core.CoreModule._onLog = console.log;
+
+        Dynamsoft.DLR.LabelRecognizerModule.onDataLoadProgressChanged = (modelPath, tag, progress) => {
+            if (tag === "starting") {
+                textLoading.style.display = "inline";
+            } else if (tag === "completed") {
+                textLoading.style.display = "none";
+            };
+        }
+
+        /**
+         * Preloads the `LabelRecognizer` module
+         */
+        Dynamsoft.Core.CoreModule.loadWasm(["DLR"]);
+
+        /**
+         * Creates a CameraEnhancer instance for later use.
+         */
+        async function initDCE() {
+            const view = await Dynamsoft.DCE.CameraView.createInstance();
+            cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(view);
+            cameraViewContainer.append(view.getUIElement());
+            cameraEnhancer.setScanRegion({ x: 10, y: 45, width: 80, height: 10, isMeasuredInPercentage: true, })
+        }
+
+        /**
+         * Creates a CaptureVisionRouter instance and configure the task to recognize text.
+         * Also, make sure the original image is returned after it has been processed.
+         */
+        let cvrReady = (async function initCVR() {
+            await initDCE();
+            router = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
+            await router.initSettings(`{
+	"CaptureVisionTemplates": [
+        {
+            "Name": "locr",
+            
+            "ImageROIProcessingNameArray": [
+                "TA_0"
+			],
+			"MaxParallelTasks": 1,
+      "OutputOriginalImage": 1
+        }
+    ],
+	
+    "TargetROIDefOptions": [
+        {
+            "Name": "TA_0",
+            "TaskSettingNameArray": [
+                "dlr"
+            ]
+        }
+	],
+	"LabelRecognizerTaskSettingOptions":[
+		{
+			"Name":"dlr",
+			"TextLineSpecificationNameArray":["LS_1"],
+			"SectionImageParameterArray":[
+				{
+					"Section":"REGION_PREDETECTION",
+					"ImageParameterName":"IP_0"
+				},
+				{
+					"Section":"TEXT_LINE_LOCALIZATION",
+					"ImageParameterName":"IP_0"
+				},
+        {
+          "Section": "TEXT_LINE_RECOGNITION",
+          "ImageParameterName": "IP_0"
+        }
+			]
+		}
+	],
+	"TextLineSpecificationOptions":[
+		{
+			"Name":"LS_1",
+			"CharacterModelName":"NumberUppercase",
+			"CharHeightRange":[1,1000,1]
+		}
+	],
+	"CharacterModelOptions" :[
+		{
+			"Name":"NumberUppercase"
+		}
+	],
+  "ImageParameterOptions": [
+    {
+      "Name": "IP_0",
+      "ScaleDownThreshold": 1960,
+      "TextDetectionMode": {
+        "Mode": "TTDM_LINE",
+        "CharHeightRange": [ 1, 1000, 1 ],
+        "Sensitivity": 7
+      },
+      "GrayscaleTransformationModes": [
+        {
+          "Mode": "GTM_INVERTED"
+        }
+      ]
+    }
+  ]
+}`);
+            router.setInput(cameraEnhancer);
+
+            /* Defines the result receiver for the task.*/
+            const resultReceiver = new Dynamsoft.CVR.CapturedResultReceiver();
+            resultReceiver.onOriginalImageResultReceived = (image) => {
+                if (originalImageArr.length >= 8) originalImageArr.shift();
+                originalImageArr.push(image)
+            }
+            resultReceiver.onRecognizedTextLinesReceived = (result) => {
+                if (!result.textLineResultItems.length) return;
+                // console.log(result);
+                for (let item of result.textLineResultItems) {
+                    for (let i = 0; i < item.text.length; i++) {
+                        let j = i + 11;
+                        let k = i + 13;
+                        if (j > item.text.length && k > item.text.length) return;
+                        let str = item.text.substring(i, j);
+                        let str2 = item.text.substring(i, k);
+                        if (/^[0-9]{5}[A-Z]{2}[0-9]{4}$/.test(str)) {
+                            resultsContainer.innerHTML = "";
+                            resultsContainer.innerHTML += `${str}<br><hr>`;
+                        } else if (/^[0-9]{2}[A-Z][0-9]{10}$/.test(str2)) {
+                            resultsContainer.innerHTML = "";
+                            resultsContainer.innerHTML += `${str2}<br><hr>`;
+                        }
+                    }
+                }
+            };
+            await router.addResultReceiver(resultReceiver);
+
+            // Filter out unchecked and duplicate results.
+            const filter = new Dynamsoft.Utility.MultiFrameResultCrossFilter();
+            filter.enableResultCrossVerification(Dynamsoft.Core.EnumCapturedResultItemType.CRIT_TEXT_LINE, true); // Filter out unchecked text lines.
+            // Filter out duplicate text lines within 3 seconds.
+            filter.enableResultDeduplication(Dynamsoft.Core.EnumCapturedResultItemType.CRIT_TEXT_LINE, true);
+            filter.setDuplicateForgetTime(Dynamsoft.Core.EnumCapturedResultItemType.CRIT_TEXT_LINE, 3000);
+            // await router.addResultFilter(filter);
+        })();
+
+        async function startCapturing() {
+            try {
+                await (promiseCVRReady = promiseCVRReady || (async () => {
+                    await cvrReady;
+                    /* Starts streaming the video. */
+                    await cameraEnhancer.open();
+                    /* Uses the built-in template "RecognizeTextLines_Default" to start a recognize task. */
+                    await router.startCapturing("locr");
+                    // document.querySelector("#div-ui-container div").style.display = "block";
+                })());
+            } catch (ex) {
+                console.log(ex);
+                let errMsg = ex.message || ex;
+                console.error(errMsg);
+                alert(errMsg);
+            }
+        }
+
+        async function getImages() {
+            await this.saveImages();
+            const zip = new JSZip();
+            for (let i = 0; i < downloadImg.length; i++) {
+                zip.file(downloadImg[i].name, downloadImg[i].blob);
+            }
+            const content = await zip.generateAsync({ type: "blob" });
+            saveAs(content, `screenshot-${getDate()}.zip`);
+        }
+        async function saveImages() {
+            return new Promise(async (rs, rj) => {
+                for (let image of originalImageArr) {
+                    console.log(image);
+                    const cvs = image.imageData.toCanvas();
+                    if (cvs != null) {
+                        const blob = cvs.convertToBlob ? await cvs.convertToBlob() : await new Promise(resolve => {
+                            cvs.toBlob(blob => resolve(blob));
+                        });
+                        downloadImg.push({ name: "Screenshot - " + new Date().toISOString().replace(/\:/g, "-") + ".png", blob });
+                    }
+                }
+                rs();
+            })
+        }
+        function getDate() {
+            const date = new Date();
+            return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+        }
+    </script>
+</body>
+
+</html>
