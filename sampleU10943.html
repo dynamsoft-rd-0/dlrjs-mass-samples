@@ -21,7 +21,7 @@
     <h1 style="font-size: 1.5em;">Recognize Label from a Camera</h1>
     <button id="btn-open-recognize" onclick="startCapturing()">Open Label Recognizer</button>
     <span id="text-loading" style="display: none; color: red;margin-left: 10px;vertical-align: middle;">Loading Model...</span>
-    <div id="div-ui-container" style="margin-top: 10px;height: 500px;position: relative;">
+    <div id="div-ui-container" style="margin-top: 10px;height: 450px;position: relative;">
         <!-- <div style="position: absolute; top: 50%; transform: translateY(-50%); width: 100%; text-align: center; z-index: 1; display: none;">ABCDEFG1234567</div> -->
     </div>
     Results:
@@ -63,6 +63,8 @@
          */
         Dynamsoft.Core.CoreModule.loadWasm(["DLR"]);
 
+        Dynamsoft.Core.CoreModule.engineResourcePaths.dcm = "https://192.168.8.122/desktop/tfs/Products/DLR/DLR_Main/Wasm_3/original_model_files/NumberUppercase/"
+
         /**
          * Creates a CameraEnhancer instance for later use.
          */
@@ -80,76 +82,7 @@
         let cvrReady = (async function initCVR() {
             await initDCE();
             router = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
-            await router.initSettings(`{
-	"CaptureVisionTemplates": [
-        {
-            "Name": "locr",
-            
-            "ImageROIProcessingNameArray": [
-                "TA_0"
-			],
-			"MaxParallelTasks": 1,
-      "OutputOriginalImage": 1
-        }
-    ],
-	
-    "TargetROIDefOptions": [
-        {
-            "Name": "TA_0",
-            "TaskSettingNameArray": [
-                "dlr"
-            ]
-        }
-	],
-	"LabelRecognizerTaskSettingOptions":[
-		{
-			"Name":"dlr",
-			"TextLineSpecificationNameArray":["LS_1"],
-			"SectionImageParameterArray":[
-				{
-					"Section":"REGION_PREDETECTION",
-					"ImageParameterName":"IP_0"
-				},
-				{
-					"Section":"TEXT_LINE_LOCALIZATION",
-					"ImageParameterName":"IP_0"
-				},
-        {
-          "Section": "TEXT_LINE_RECOGNITION",
-          "ImageParameterName": "IP_0"
-        }
-			]
-		}
-	],
-	"TextLineSpecificationOptions":[
-		{
-			"Name":"LS_1",
-			"CharacterModelName":"NumberUppercase",
-			"CharHeightRange":[1,1000,1]
-		}
-	],
-	"CharacterModelOptions" :[
-		{
-			"Name":"NumberUppercase"
-		}
-	],
-  "ImageParameterOptions": [
-    {
-      "Name": "IP_0",
-      "ScaleDownThreshold": 1960,
-      "TextDetectionMode": {
-        "Mode": "TTDM_LINE",
-        "CharHeightRange": [ 1, 1000, 1 ],
-        "Sensitivity": 7
-      },
-      "GrayscaleTransformationModes": [
-        {
-          "Mode": "GTM_INVERTED"
-        }
-      ]
-    }
-  ]
-}`);
+            await router.initSettings("https://192.168.8.122/desktop/U10943_case2.json");
             router.setInput(cameraEnhancer);
 
             /* Defines the result receiver for the task.*/
