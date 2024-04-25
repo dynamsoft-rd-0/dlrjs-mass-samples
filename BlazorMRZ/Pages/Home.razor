@@ -1,0 +1,28 @@
+﻿@page "/"
+@inject IJSRuntime JS
+
+<PageTitle>Home</PageTitle>
+
+<h1>Recognize MRZ from a Camera</h1>
+
+<button @onclick="StartRecognize">Open MRZ Recognizer</button>
+
+<p>Results:</p>
+<pre>@muTxt</pre>
+<!--<pre>@test</pre>-->
+
+@code {
+    // reference: https://learn.microsoft.com/en-us/aspnet/core/blazor/javascript-interoperability/call-javascript-from-dotnet?view=aspnetcore-8.0#invoke-js-functions
+
+    private string txt = "";
+    private MarkupString muTxt {
+        get{ return new(txt); }    
+    }
+    //private MarkupString test = new("123");
+
+    private async Task StartRecognize()
+    {
+        txt = await JS.InvokeAsync<string>("startRecognize");
+        //test = new("12345");
+    }
+}

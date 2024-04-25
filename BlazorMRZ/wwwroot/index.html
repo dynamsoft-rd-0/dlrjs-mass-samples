@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BlazorMRZ</title>
+    <base href="/" />
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link href="BlazorMRZ.styles.css" rel="stylesheet" />
+    <link href="manifest.webmanifest" rel="manifest" />
+    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+</head>
+
+<body>
+    <div id="app">
+        <svg class="loading-progress">
+            <circle r="40%" cx="50%" cy="50%" />
+            <circle r="40%" cx="50%" cy="50%" />
+        </svg>
+        <div class="loading-progress-text"></div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script>navigator.serviceWorker.register('service-worker.js');</script>
+
+    <!--+++++++++++++++++++++++++++++++ dynamsoft label recognier start +++++++++++++++++++++++++++++++-->
+    <div id="div-dlr" style="position:fixed;left:0;top:0;width:100vw;height:100vh;background:#fff;display:none;">
+        <div id="dlr-model-loading" style="margin-top:15px;"></div>
+        <div id="div-dlr-ui-container" style="height:75vh;"></div>
+        <button id="btn-dlr-stop" style="display:none">stop scanning</button>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-core@3.0.32/dist/core.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-license@3.0.40/dist/license.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-code-parser@2.0.20/dist/dcp.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@3.3.5/dist/dce.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-label-recognizer@2.2.31/dist/dlr.js"></script>
+    <script>
+        // wrapper other js, only export `window.startRecognize`
+        // in my test `window.` can not be omit
+        {
+            let cameraEnhancer = null;
+            let recognizer = null;
+            let parser = null;
+            let promiseDLRReady;
+
+            /** LICENSE ALERT - README
+             * To use the library, you need to first specify a license key using the API "license" as shown below.
+             */
+            Dynamsoft.DLR.LabelRecognizer.license = "DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9";
+            Dynamsoft.License.LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9");
+            /**
+             * You can visit https://www.dynamsoft.com/customer/license/trialLicense?utm_source=github&product=dlr&package=js to get your own trial license good for 30 days.
+             * Note that if you downloaded this sample from Dynamsoft while logged in, the above license key may already be your own 30-day trial license.
+             * For more information, see https://www.dynamsoft.com/label-recognition/programming/javascript/user-guide.html?ver=latest#specify-the-license or contact support@dynamsoft.com.
+             * LICENSE ALERT - THE END
+             */
+
+            Dynamsoft.DCP.CodeParserModule.loadSpec("MRTD_TD1_ID");
+            Dynamsoft.DCP.CodeParserModule.loadSpec("MRTD_TD2_FRENCH_ID");
+            Dynamsoft.DCP.CodeParserModule.loadSpec("MRTD_TD2_ID");
+            Dynamsoft.DCP.CodeParserModule.loadSpec("MRTD_TD2_VISA");
+            Dynamsoft.DCP.CodeParserModule.loadSpec("MRTD_TD3_PASSPORT");
+            Dynamsoft.DCP.CodeParserModule.loadSpec("MRTD_TD3_VISA");
+
+            window.startRecognize = async () => {
+                const divDlr = document.querySelector('#div-dlr');
+                const btnStop = document.querySelector('#btn-dlr-stop');
+                divDlr.style.display = '';
+
+                let resultTxt;
+                try {
+                    await (promiseDLRReady = promiseDLRReady || (async () => {
+                        Dynamsoft.DLR.LabelRecognizer.onResourcesLoadProgress = (resourcePath, progress) => {
+                            // In this event handler, you can display the loading progress of the model file.
+                            document.querySelector('#dlr-model-loading').innerHTML = "Model Loading..." + " " + (progress.loaded / progress.total).toFixed(2) * 100 + "%";
+                        }
+                        Dynamsoft.DLR.LabelRecognizer.onResourcesLoaded = (resourcePath) => {
+                            // In this event handler, you can close the visual cue if it was displayed.
+                            document.querySelector('#dlr-model-loading').innerHTML = "";
+                        };
+
+                        cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance();
+                        cameraEnhancer.setVideoFit("cover");
+
+                        recognizer = await Dynamsoft.DLR.LabelRecognizer.createInstance();
+                        await recognizer.setImageSource(cameraEnhancer, { resultsHighlightBaseShapes: Dynamsoft.DCE.DrawingItem });
+                        await recognizer.updateRuntimeSettingsFromString("video-mrz");
+                        const settings = JSON.parse(await recognizer.outputRuntimeSettingsToString());
+                        settings.LabelRecognizerParameterArray[0].BinarizationModes[1] = { Mode: 'BM_THRESHOLD' };
+                        settings.LabelRecognizerParameterArray[0].LineStringRegExPattern = settings.TextAreaArray[0].LineStringRegExPattern = settings.LineSpecificationArray[0].LineStringRegExPattern = "([ACI][A-Z<][A-Z][A-Z<]{2}[A-Z0-9<]{9}[0-9<][A-Z0-9<]{15}){(30)}|([0-9<]{6}[0-9][MF<][0-9]{2}[(01-12)][(01-31)][0-9][A-Z][A-Z<]{2}[A-Z0-9<]{11}[0-9]){(30)}|([A-Z][A-Z<]{29}){(30)}|([ACIV][A-Z<][A-Z][A-Z<]{33}){(36)}|([A-Z0-9<]{9}[0-9][A-Z][A-Z<]{2}[0-9<]{6}[0-9][MF<][0-9]{2}[(01-12)][(01-31)][0-9][A-Z0-9<]{8}){(36)}|(I[A-Z<]FRA[A-Z<]{25}[A-Z0-9<]{6}){(36)}|([A-Z0-9<]{12}[0-9][A-Z<]{14}[0-9]{2}[(01-12)][(01-31)][0-9][MF<][0-9]){(36)}|([PV][A-Z<][A-Z][A-Z<]{41}){(44)}|([A-Z0-9<]{9}[0-9][A-Z][A-Z<]{2}[0-9<]{6}[0-9][MF<][0-9]{2}[(01-12)][(01-31)][0-9][A-Z0-9<]{14}[0-9<][0-9]){(44)}|([A-Z0-9<]{9}[0-9][A-Z][A-Z<]{2}[0-9<]{6}[0-9][MF<][0-9]{2}[(01-12)][(01-31)][0-9][A-Z0-9<]{14}[A-Z0-9<]{2}){(44)}";
+                        await recognizer.updateRuntimeSettingsFromString(settings, true);
+
+                        await document.getElementById('div-dlr-ui-container').appendChild(cameraEnhancer.getUIElement());
+
+                        Dynamsoft.License.LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9");
+                        parser = await Dynamsoft.DCP.CodeParser.createInstance();
+                    })());
+
+                    let scanDone, pScanDone = new Promise(r => { scanDone = r });
+
+                    // Callback to MRZ recognizing result
+                    recognizer.onMRZRead = async (txt, results) => {
+                        await parseMrzAndUpdateDom(txt, results);
+                    }
+
+                    async function parseMrzAndUpdateDom(txt, results) {
+                        let parseResults = await parser.parse(txt);
+                        parseResults = handleMrzParseResult(parseResults);
+                        console.log(parseResults);
+                        if (JSON.stringify(parseResults) === "{}") {
+                            alert('Parse Failed!');
+                            resultTxt = 'Parse Failed!';
+                            scanDone();
+                        } else {
+                            for (let info in parseResults) {
+                                resultTxt += info + " : " + parseResults[info] + "\n";
+                            }
+                            scanDone();
+                        }
+                    }
+
+                    btnStop.onclick = scanDone;
+                    btnStop.style.display = '';
+
+                    await recognizer.startScanning(true);
+                    await pScanDone;
+                } catch (ex) {
+                    let errMsg;
+                    if (ex.message.includes("network connection error")) {
+                        errMsg = "Failed to connect to Dynamsoft License Server: network connection error. Check your Internet connection or contact Dynamsoft Support (support@dynamsoft.com) to acquire an offline license.";
+                    } else {
+                        errMsg = ex.message || ex;
+                    }
+                    console.error(errMsg);
+                    alert(errMsg);
+                    resultTxt = errMsg;
+                }
+
+                btnStop.style.display = 'none';
+                divDlr.style.display = 'none';
+                try { await recognizer.stopScanning(); } catch (_) { }
+
+                return resultTxt;
+            };
+
+            const handleMrzParseResult = (result) => {
+                const parseResultInfo = {};
+                if (!result.exception) {
+                    let type = result.getFieldValue("documentCode");
+                    parseResultInfo['Document Type'] = JSON.parse(result.jsonString).CodeType;
+                    let nation = result.getFieldValue("issuingState");
+                    parseResultInfo['Issuing State'] = nation;
+                    let surName = result.getFieldValue("primaryIdentifier");
+                    parseResultInfo['Surname'] = surName;
+                    let givenName = result.getFieldValue("secondaryIdentifier");
+                    parseResultInfo['Given Name'] = givenName;
+                    let passportNumber = type === "P" ? result.getFieldValue("passportNumber") : result.getFieldValue("documentNumber");
+                    parseResultInfo['Passport Number'] = passportNumber;
+                    let nationality = result.getFieldValue("nationality");
+                    parseResultInfo['Nationality'] = nationality;
+                    let gender = result.getFieldValue("sex");
+                    parseResultInfo["Gender"] = gender;
+                    let birthYear = result.getFieldValue("birthYear");
+                    let birthMonth = result.getFieldValue("birthMonth");
+                    let birthDay = result.getFieldValue("birthDay");
+                    if (parseInt(birthYear) > (new Date().getFullYear() % 100)) {
+                        birthYear = "19" + birthYear;
+                    } else {
+                        birthYear = "20" + birthYear;
+                    }
+                    parseResultInfo['Date of Birth (YYYY-MM-DD)'] = birthYear + "-" + birthMonth + "-" + birthDay
+                    let expiryYear = result.getFieldValue("expiryYear");
+                    let expiryMonth = result.getFieldValue("expiryMonth");
+                    let expiryDay = result.getFieldValue("expiryDay");
+                    if (parseInt(expiryYear) >= 60) {
+                        expiryYear = "19" + expiryYear;
+                    } else {
+                        expiryYear = "20" + expiryYear;
+                    }
+                    parseResultInfo["Date of Expiry (YYYY-MM-DD)"] = expiryYear + "-" + expiryMonth + "-" + expiryDay;
+                }
+                return parseResultInfo;
+            };
+        }
+
+    </script>
+    <!--+++++++++++++++++++++++++++++++ dynamsoft label recognier end +++++++++++++++++++++++++++++++-->
+</body>
+
+</html>
