@@ -121,6 +121,7 @@
                             resultTxt = 'Parse Failed!';
                             scanDone();
                         } else {
+                            resultTxt = "";
                             for (let info in parseResults) {
                                 resultTxt += info + " : " + parseResults[info] + "\n";
                             }
