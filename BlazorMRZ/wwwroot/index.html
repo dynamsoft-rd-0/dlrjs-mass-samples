@@ -109,6 +109,7 @@
 
                     // Callback to MRZ recognizing result
                     recognizer.onMRZRead = async (txt, results) => {
+                        recognizer.beepSound.play();
                         await parseMrzAndUpdateDom(txt, results);
                     }
 
