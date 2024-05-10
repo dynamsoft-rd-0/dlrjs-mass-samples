@@ -34,26 +34,9 @@
             }
         }
 
-        * {
-            padding: 0;
-            margin: 0;
-            box-sizing: border-box;
-        }
-
-        html {
-            width: 100%;
-            height: 100%;
-            font-size: 62.5%;
-        }
-
-        body {
-            width: 100%;
-            height: 100%;
-        }
-
         .dce-ui-container {
             width: 100%;
-            height: 100%;
+            height: 80%;
             min-width: 350px;
             min-height: 100px;
             position: relative;
@@ -230,6 +213,10 @@
             window.startRecognize = async () => {
                 const divDlr = document.querySelector('#div-dlr');
                 const btnStop = document.querySelector('#btn-dlr-stop');
+                const aboutDiv = document.querySelector(".about");
+                const mrzBox = document.querySelector(".mrz-box");
+
+                aboutDiv.style.display = "none";
                 divDlr.style.display = '';
 
                 let resultTxt;
@@ -296,9 +283,10 @@
                     cameraEnhancer.ifShowScanRegionLaser = false;
 
                     await recognizer.startScanning(true);
-                    document.querySelector(".mrz-box").style.display = "block";
+                    mrzBox.style.display = "block";
                     cameraEnhancer.setScanRegion(region());
                     await pScanDone;
+                    
                 } catch (ex) {
                     let errMsg;
                     if (ex.message.includes("network connection error")) {
@@ -311,8 +299,10 @@
                     resultTxt = errMsg;
                 }
 
-                btnStop.style.display = 'none';
-                divDlr.style.display = 'none';
+                btnStop.style.display = "none";
+                divDlr.style.display = "none";
+                mrzBox.style.display = "none";
+                aboutDiv.style.display = "block";
                 try { await recognizer.stopScanning(); } catch (_) { }
 
                 return resultTxt;
