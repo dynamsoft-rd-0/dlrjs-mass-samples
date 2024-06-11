@@ -55,12 +55,6 @@ async function initDCE() {
     cameraListDiv.appendChild(cameraItem);
   }
   view.setVideoFit("cover");
-
-  // Recalculate the scan region when the window size changes
-  window.addEventListener("resize", () => {
-    cameraEnhancer.setScanRegion(region());
-    view.setScanRegionMaskVisible(false);
-  })
 }
 
 /**

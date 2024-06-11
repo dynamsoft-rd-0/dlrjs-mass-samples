@@ -105,6 +105,12 @@ window.addEventListener("click", () => {
   down.style.display = "inline-block";
 })
 
+// Recalculate the scan region when the window size changes
+window.addEventListener("resize", () => {
+  cameraEnhancer.setScanRegion(region());
+  view.setScanRegionMaskVisible(false);
+})
+
 // Add click events to some buttons
 startScaningBtn.addEventListener("click", startCapturing);
 
