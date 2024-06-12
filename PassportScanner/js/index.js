@@ -37,6 +37,7 @@ const regionEdgeLength = () => {
   const visibleRegionWidth = visibleRegionInPixels.width;
   const visibleRegionHeight = visibleRegionInPixels.height;
   const regionEdgeLength = 0.4 * Math.min(visibleRegionWidth, visibleRegionHeight);
+  console.log(Math.round(regionEdgeLength));
   return Math.round(regionEdgeLength);
 };
 
@@ -63,7 +64,6 @@ const regionLeft = () => {
 
 const regionTop = () => {
   if (!cameraEnhancer || !cameraEnhancer.isOpen()) return 0;
-  const visibleRegionInPixels = view.getVisibleRegionOfVideo({ inPixels: true });
   const currentResolution = cameraEnhancer.getResolution();
   const vh = currentResolution.height;
   let top = 0.5 - regionEdgeLength() / vh / 2;
@@ -76,17 +76,6 @@ const regionTop = () => {
 };
 
 const region = () => {
-  if (cameraEnhancer.isOpen()) {
-    const resolution = cameraEnhancer.getResolution();
-    const vw = resolution.width, vh = resolution.height;
-    const pointRelatedToVideo = {
-      x: (vw * regionLeft()) / 100,
-      y: (vh * regionTop()) / 100,
-    };
-
-    const pointRelatedToView = cameraEnhancer.convertToClientCoordinates(pointRelatedToVideo);
-  }
-
   let region = {
     left: regionLeft(),
     right: 100 - regionLeft(),
@@ -138,3 +127,7 @@ closeSoundBtn.addEventListener("click", () => {
   closeSoundBtn.style.display = "none";
   isPlaySound = true;
 })
+
+window.addEventListener("deviceorientation", (event) => { 
+  console.log(event.beta); 
+});
