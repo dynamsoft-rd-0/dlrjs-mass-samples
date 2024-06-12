@@ -127,7 +127,3 @@ closeSoundBtn.addEventListener("click", () => {
   closeSoundBtn.style.display = "none";
   isPlaySound = true;
 })
-
-window.addEventListener("deviceorientation", (event) => { 
-  console.log(event.beta); 
-});
