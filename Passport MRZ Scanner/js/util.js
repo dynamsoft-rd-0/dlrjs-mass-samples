@@ -25,9 +25,12 @@ export function getNeedShowFields(result) {
     } else {
       birthYear = "20" + birthYear;
     }
-    let age = new Date().getUTCFullYear() - parseInt(birthYear);
-    parseResultInfo["Age"] = age;
-
+    if(isNaN(parseInt(birthYear))) {
+      parseResultInfo["Age"] = undefined;
+    } else {
+      let age = new Date().getUTCFullYear() - parseInt(birthYear);
+      parseResultInfo["Age"] = age;
+    }
     let documentNumber = result.getFieldValue("passportNumber");
     parseResultInfo['Document Number'] = documentNumber;
 
