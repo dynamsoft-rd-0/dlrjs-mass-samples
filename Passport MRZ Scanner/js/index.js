@@ -1,4 +1,5 @@
 import { pDataLoad, cvrReady } from "./init.js";
+import { checkOrientation, getVisibleRegionOfVideo } from "./util.js"
 
 async function startCapturing() {
   try {
@@ -20,7 +21,7 @@ async function startCapturing() {
       }
       passportFrame.style.display = "inline-block";
       cameraEnhancer.setScanRegion(region());
-      view.setScanRegionMaskVisible(false);
+      cameraView.setScanRegionMaskVisible(false);
       await cvRouter.startCapturing("ReadPassport");
     })());
   } catch (ex) {
@@ -33,19 +34,23 @@ async function startCapturing() {
 // -----------Logic code for calculating scan region ↓------------
 const regionEdgeLength = () => {
   if (!cameraEnhancer || !cameraEnhancer.isOpen()) return 0;
-  const visibleRegionInPixels = view.getVisibleRegionOfVideo({ inPixels: true });
+  const visibleRegionInPixels = getVisibleRegionOfVideo();
   const visibleRegionWidth = visibleRegionInPixels.width;
   const visibleRegionHeight = visibleRegionInPixels.height;
   const regionEdgeLength = 0.4 * Math.min(visibleRegionWidth, visibleRegionHeight);
-  console.log(Math.round(regionEdgeLength));
   return Math.round(regionEdgeLength);
 };
 
 const regionLeft = () => {
   if (!cameraEnhancer || !cameraEnhancer.isOpen()) return 0;
-  const visibleRegionInPixels = view.getVisibleRegionOfVideo({ inPixels: true });
+  const visibleRegionInPixels = getVisibleRegionOfVideo();
   const currentResolution = cameraEnhancer.getResolution();
-  const vw = currentResolution.width;
+  let vw = currentResolution.width;
+  if (checkOrientation() === "portrait") {
+    vw = Math.min(currentResolution.width, currentResolution.height);
+  } else {
+    vw = Math.max(currentResolution.width, currentResolution.height);
+  }
   const visibleRegionWidth = visibleRegionInPixels.width;
   let left = 0.5 - regionEdgeLength() / vw / 2;
   let regionCssW;
@@ -65,9 +70,16 @@ const regionLeft = () => {
 const regionTop = () => {
   if (!cameraEnhancer || !cameraEnhancer.isOpen()) return 0;
   const currentResolution = cameraEnhancer.getResolution();
-  const vh = currentResolution.height;
+  let vw = currentResolution.width;
+  let vh = currentResolution.height;
+  if (checkOrientation() === "portrait") {
+    vw = Math.min(currentResolution.width, currentResolution.height);
+    vh = Math.max(currentResolution.width, currentResolution.height);
+  } else {
+    vw = Math.max(currentResolution.width, currentResolution.height);
+    vh = Math.min(currentResolution.width, currentResolution.height);
+  }
   let top = 0.5 - regionEdgeLength() / vh / 2;
-  const vw = currentResolution.width;
   const regionWidthInPixel = vw - (regionLeft() * 2 * vw) / 100;
   const regionHeightInPixel = regionWidthInPixel / 6.73; // 6.73 is the aspect ratio of 'passportf frame.svg'
   top = ((vh - regionHeightInPixel) / 2 / vh) * 100;
@@ -87,6 +99,10 @@ const region = () => {
 }
 // -----------Logic code for calculating scan region ↑------------
 
+const restartVideo = async () => {
+  resultContainer.style.display = "none";
+  await cvRouter.startCapturing("ReadPassport");
+}
 
 window.addEventListener("click", () => {
   cameraListDiv.style.display = "none";
@@ -96,17 +112,19 @@ window.addEventListener("click", () => {
 
 // Recalculate the scan region when the window size changes
 window.addEventListener("resize", () => {
-  cameraEnhancer.setScanRegion(region());
-  view.setScanRegionMaskVisible(false);
+  passportFrame.style.display = "none";
+  timer && clearTimeout(timer);
+  timer = setTimeout(() => {
+    passportFrame.style.display = "inline-block";
+    cameraEnhancer.setScanRegion(region());
+    cameraView.setScanRegionMaskVisible(false);
+  }, 500);
 })
 
 // Add click events to some buttons
 startScaningBtn.addEventListener("click", startCapturing);
-
-restartVideoBtn.addEventListener("click", async () => {
-  resultContainer.style.display = "none";
-  await cvRouter.startCapturing("ReadPassport");
-})
+restartVideoBtn.addEventListener("click", restartVideo);
+resultRestartBtn.addEventListener("click", restartVideo);
 
 cameraSelector.addEventListener("click", (e) => {
   e.stopPropagation();

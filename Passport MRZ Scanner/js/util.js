@@ -4,7 +4,7 @@ export function createPendingPromise() {
     resolve = res;
     reject = rej;
   });
- 
+
   return { promise, resolve, reject };
 }
 
@@ -59,4 +59,75 @@ export function getNeedShowFields(result) {
     parseResultInfo["Secondary Identifier(s)"] = secondaryIdentifier;
   }
   return parseResultInfo;
+}
+
+export function checkOrientation() {
+  if (window.matchMedia("(orientation: portrait)").matches) {
+    return 'portrait';
+  } else if (window.matchMedia("(orientation: landscape)").matches) {
+    return 'landscape';
+  }
+}
+
+export function getVisibleRegionOfVideo() {
+  if(!cameraView || !cameraView.getVideoElement()) return;
+  const video = cameraView.getVideoElement();
+  let width = video.videoWidth;
+  let height = video.videoHeight;
+  let objectFit = cameraView.getVideoFit();
+
+  const isPortrait = checkOrientation() === "portrait";
+  let _width = width;
+  let _height = height;
+  if (isPortrait) {
+    _width = Math.min(width, height);
+    _height = Math.max(width, height);
+  } else {
+    _width = Math.max(width, height);
+    _height = Math.min(width, height);
+  }
+  width = _width;
+  height = _height;
+
+  const { width: videoCSSWidth, height: videoCSSHeight } =
+    cameraView._innerComponent.getBoundingClientRect();
+  if (videoCSSWidth <= 0 || videoCSSHeight <= 0) {
+    throw new Error(
+      `Unable to get video dimensions. Video may not be rendered on the page.`
+    );
+  }
+
+  const videoCSSWHRatio = videoCSSWidth / videoCSSHeight,
+    videoWHRatio = width / height;
+  let cssScaleRatio;
+  const regionInPixels = {
+    x: 0,
+    y: 0,
+    width: width,
+    height: height,
+    isMeasuredInPercentage: false,
+  };
+
+  if (objectFit === "cover") {
+    if (videoCSSWHRatio < videoWHRatio) {
+      // a part of length is invisible
+      cssScaleRatio = videoCSSHeight / height;
+      regionInPixels.x = Math.floor(
+        (width - videoCSSWidth / cssScaleRatio) / 2
+      );
+      regionInPixels.y = 0;
+      regionInPixels.width = Math.ceil(videoCSSWidth / cssScaleRatio);
+      regionInPixels.height = height;
+    } else {
+      // a part of height is invisible
+      cssScaleRatio = videoCSSWidth / width;
+      regionInPixels.x = 0;
+      regionInPixels.y = Math.floor(
+        (height - videoCSSHeight / cssScaleRatio) / 2
+      );
+      regionInPixels.width = width;
+      regionInPixels.height = Math.ceil(videoCSSHeight / cssScaleRatio);
+    }
+  }
+  return regionInPixels;
 }

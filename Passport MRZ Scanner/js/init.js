@@ -7,7 +7,8 @@ let pDataLoad = createPendingPromise();
 /** LICENSE ALERT - README
  * To use the library, you need to first specify a license key using the API "license" as shown below.
  */
-Dynamsoft.License.LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9", true);
+// Dynamsoft.License.LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9");
+Dynamsoft.License.LicenseManager.initLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiODAwMC04MDAwIiwibWFpblNlcnZlclVSTCI6Imh0dHBzOi8vMTkyLjE2OC44LjEyMi9kbHMvIiwib3JnYW5pemF0aW9uSUQiOiI4MDAwIiwiY2hlY2tDb2RlIjotMTA1NjUzOTM3M30=", true);
 /** 
  * You can visit https://www.dynamsoft.com/customer/license/trialLicense?utm_source=github&product=dlr&package=js to get your own trial license good for 30 days. 
  * Note that if you downloaded this sample from Dynamsoft while logged in, the above license key may already be your own 30-day trial license.
@@ -32,8 +33,8 @@ Dynamsoft.DLR.LabelRecognizerModule.loadRecognitionData("MRZ");
  * Creates a CameraEnhancer instance for later use.
  */
 async function initDCE() {
-  view = await Dynamsoft.DCE.CameraView.createInstance(cameraViewContainer);
-  cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(view);
+  cameraView = await Dynamsoft.DCE.CameraView.createInstance(cameraViewContainer);
+  cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(cameraView);
 
   // Get the device's camera information and render the camera list
   cameraList = await cameraEnhancer.getAllCameras();
@@ -53,7 +54,7 @@ async function initDCE() {
     })
     cameraListDiv.appendChild(cameraItem);
   }
-  view.setVideoFit("cover");
+  cameraView.setVideoFit("cover");
 }
 
 /**
@@ -71,25 +72,21 @@ let cvrReady = (async function initCVR() {
   resultReceiver.onCapturedResultReceived = (result) => {
     const recognizedResults = result.textLineResultItems;
     const parsedResults = result.parsedResultItems;
-    const originalImage = result.items.filter(item => item.type === Dynamsoft.Core.EnumCapturedResultItemType.CRIT_ORIGINAL_IMAGE);
 
     if (recognizedResults) {
-      const imageData = Dynamsoft.Utility._getNorImageData(originalImage[0].imageData);
-      const showCvs = Dynamsoft.Utility._toCanvas(imageData);
-      const needShowTextLines = recognizedResults[0].text;
-      parsedResultArea.innerText = "";
-      originalImageArea.innerText = "";
-      originalImageArea.appendChild(showCvs);
-      const pMrzString = document.createElement("p");
-      pMrzString.className = "mrz-string";
-      pMrzString.innerText = needShowTextLines;
-      parsedResultArea.appendChild(pMrzString);
-
+      parsedResultName.innerText = "";
+      parsedResultSexAndAge.innerText = "";
+      parsedResultMain.innerText = "";
       // If get parsing result, use the parsing result to render the result page
       if (parsedResults) {
         const parseResultInfo = getNeedShowFields(parsedResults[0]);
+        parsedResultName.innerText = parseResultInfo["Name"];
+        parsedResultSexAndAge.innerText = parseResultInfo["Gender"] + ", Age: " + parseResultInfo["Age"];
+
         for (let field in parseResultInfo) {
+          if(["Name", "Gender", "Age"].includes(field)) continue;
           const p = document.createElement("p");
+          p.className = "parsed-filed";
           const spanFieldName = document.createElement("span");
           spanFieldName.className = "field-name";
           const spanValue = document.createElement("span");
@@ -98,7 +95,7 @@ let cvrReady = (async function initCVR() {
           spanValue.innerText = `${parseResultInfo[field] || 'not detected'}`;
           p.appendChild(spanFieldName);
           p.appendChild(spanValue);
-          parsedResultArea.appendChild(p);
+          parsedResultMain.appendChild(p);
         }
       } else {
         alert(`Failed to parse the content. The MRZ text ${needShowTextLines}.`);
@@ -108,7 +105,7 @@ let cvrReady = (async function initCVR() {
       resultContainer.style.display = "flex";
       cameraListDiv.style.display = "none";
       cvRouter.stopCapturing();
-      view.clearAllInnerDrawingItems();
+      cameraView.clearAllInnerDrawingItems();
     }
   };
   await cvRouter.addResultReceiver(resultReceiver);

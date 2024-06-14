@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PassportScanner</title>
+  <title>Passport MRZ Scanner</title>
   <link rel="stylesheet" href="./css/index.css">
   <link rel="stylesheet" href="./css/reactive.css">
   <script src="https://cdn.jsdelivr.net/npm/dynamsoft-core@3.2.30/dist/core.js"></script>
@@ -13,7 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/dynamsoft-label-recognizer@3.2.30/dist/dlr.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dynamsoft-code-parser@2.2.10/dist/dcp.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dynamsoft-capture-vision-router@2.2.30/dist/cvr.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@4.0.3/dist/dce.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@4.0.3-iv-202406130116/dist/dce.js"></script>
 </head>
 
 <body>
@@ -55,7 +55,7 @@
       </svg>
       <div class="dce-video-container" style="position:absolute;left:0;top:0;width:100%;height:100%;"></div>
       <div class="dce-scanarea" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;">
-        <img class="passport-frame" src="./assets/passport frame.svg" alt="passport" style="display:none;width: 100%;height:100%;position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);"> 
+        <img class="passport-frame" src="./assets/passport frame.svg" alt="passport" style="display:none;width: 100%;height:100%;position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);">
       </div>
       <!-- The "Powered by Dynamsoft" logo can be easily removed by eliminating the following line. -->
       <div class="dce-msg-poweredby" style="position:absolute;left:50%;bottom:10%;transform:translateX(-50%);pointer-events:none;">
@@ -138,12 +138,19 @@
     </div>
   </div>
   <div class="result-container">
-    <div class="result-area">
-      <div class="original-image-area"></div>
-      <div class="parsed-result-area"></div>
+    <div class="result-header">
+      <div class="result-title">Passport Scan Results:</div>
+      <div class="result-restart">Restart ></div>
     </div>
-    <div class="btn-area">
-      <button class="btn-restart-video">RESTART VIDEO</button>
+    <div class="parsed-result-area">
+      <div class="parsed-result-header">
+        <div class="name"></div>
+        <div class="sex-and-age"></div>
+      </div>
+      <div class="parsed-result-main"></div>
+    </div>
+    <div class="restart-video">
+      <button class="btn-restart-video">Restart Video</button>
     </div>
   </div>
   <script src="./js/define.js"></script>
