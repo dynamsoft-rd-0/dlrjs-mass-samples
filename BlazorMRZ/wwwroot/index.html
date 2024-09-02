@@ -171,7 +171,9 @@
         </svg>
       </div>
     </div>
-    <button id="btn-dlr-stop" style="display:none">stop scanning</button>
+    <button id="btn-dlr-stop" style="display:none">stop scanning</button><br>
+    <textarea id="textarea-base64" style="display:none"></textarea>
+    <button id="btn-dlr-recognize" style="vertical-align: top; display: none;">recognize</button>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/dynamsoft-core@3.0.32/dist/core.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dynamsoft-license@3.0.40/dist/license.js"></script>
@@ -213,6 +215,8 @@
       window.startRecognize = async () => {
         const divDlr = document.querySelector('#div-dlr');
         const btnStop = document.querySelector('#btn-dlr-stop');
+        const textareaBase64 = document.querySelector("#textarea-base64");
+        const btnDlrRecognize = document.querySelector("#btn-dlr-recognize");
         const aboutDiv = document.querySelector(".about");
         const mrzBox = document.querySelector(".mrz-box");
 
@@ -278,9 +282,20 @@
 
           btnStop.onclick = scanDone;
           btnStop.style.display = '';
+          textareaBase64.style.display = '';
+          btnDlrRecognize.style.display = '';
 
           cameraEnhancer.ifShowScanRegionMask = false;
           cameraEnhancer.ifShowScanRegionLaser = false;
+
+          btnDlrRecognize.addEventListener("click", async () => {
+            const results = await recognizer.recognize(textareaBase64.value);
+            let txt = "";
+            for(let mrzLine of results[0].lineResults) {
+              txt += mrzLine.text;
+            }
+            await parseMrzAndUpdateDom(txt, results);
+          })
 
           await recognizer.startScanning(true);
           mrzBox.style.display = "block";
@@ -300,6 +315,8 @@
         }
 
         btnStop.style.display = "none";
+        textareaBase64.style.display = "none";
+        btnDlrRecognize.style.display = "none";
         divDlr.style.display = "none";
         mrzBox.style.display = "none";
         aboutDiv.style.display = "block";
