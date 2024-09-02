@@ -257,13 +257,13 @@
           let scanDone, pScanDone = new Promise(r => { scanDone = r });
 
           // Callback to MRZ recognizing result
-          recognizer.onMRZRead = async (txt, results) => {
+          recognizer.onMRZRead = async (txt) => {
             recognizer.beepSound.play();
             console.log(JSON.parse(await recognizer.outputRuntimeSettingsToString()));
-            await parseMrzAndUpdateDom(txt, results);
+            await parseMrzAndUpdateDom(txt);
           }
 
-          async function parseMrzAndUpdateDom(txt, results) {
+          async function parseMrzAndUpdateDom(txt) {
             let parseResults = await parser.parse(txt);
             parseResults = handleMrzParseResult(parseResults);
             console.log(parseResults);
@@ -294,7 +294,7 @@
             for(let mrzLine of results[0].lineResults) {
               txt += mrzLine.text;
             }
-            await parseMrzAndUpdateDom(txt, results);
+            await parseMrzAndUpdateDom(txt);
           })
 
           await recognizer.startScanning(true);
