@@ -28,9 +28,9 @@ Dynamsoft.Core.CoreModule.loadWasm(["DLR", "DCP"]);
 // Dynamsoft.DCP.CodeParserModule.loadSpec("MRTD_TD3_PASSPORT");
 // Dynamsoft.DCP.CodeParserModule.loadSpec("MRTD_TD1_ID");
 // Dynamsoft.DCP.CodeParserModule.loadSpec("MRTD_TD2_ID");
-Dynamsoft.DCP.CodeParserModule.loadSpec("MRTD_TD3_PASSPORT","https://github.com/dynamsoft-rd-0/dlrjs-mass-samples/tree/main/mrz-scanner-javascript/specification");
-Dynamsoft.DCP.CodeParserModule.loadSpec("MRTD_TD1_ID","https://github.com/dynamsoft-rd-0/dlrjs-mass-samples/tree/main/mrz-scanner-javascript/specification");
-Dynamsoft.DCP.CodeParserModule.loadSpec("MRTD_TD2_ID","https://github.com/dynamsoft-rd-0/dlrjs-mass-samples/tree/main/mrz-scanner-javascript/specification");
+Dynamsoft.DCP.CodeParserModule.loadSpec("MRTD_TD3_PASSPORT","https://dynamsoft-rd-0.github.io/dlrjs-mass-samples/mrz-scanner-javascript/specification");
+Dynamsoft.DCP.CodeParserModule.loadSpec("MRTD_TD1_ID","https://dynamsoft-rd-0.github.io/dlrjs-mass-samples/mrz-scanner-javascript/specification");
+Dynamsoft.DCP.CodeParserModule.loadSpec("MRTD_TD2_ID","https://dynamsoft-rd-0.github.io/dlrjs-mass-samples/mrz-scanner-javascript/specification");
 Dynamsoft.DLR.LabelRecognizerModule.loadRecognitionData("MRZ");
 
 /**
