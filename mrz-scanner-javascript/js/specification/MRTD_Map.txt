@@ -1,0 +1,4 @@
+MapTableName: sexCode
+F female
+M male
+< unspecified
