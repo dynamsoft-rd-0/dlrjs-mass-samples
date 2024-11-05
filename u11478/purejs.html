@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+  <!-- If you want to use it with other versions of Dynamsoft products (namespace/package conflicts), please contact us. -->
+  <script src="https://cdn.jsdelivr.net/npm/dynamsoft-capture-vision-bundle@2.4.2200-beta-202411042345/dist/dcv.bundle.js"></script>
+  <div id="cameraViewContainer" style="width: 100%; height: 60vh"></div>
+  <textarea id="results" style="width: 100%; min-height: 10vh; font-size: 3vmin; overflow: auto" disabled></textarea>
+  <script>
+    Dynamsoft.License.LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9");
+
+
+    let cvRouter, cameraEnhancer, uiElement;
+
+    (async () => {
+
+      cvRouter = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
+
+      let view = await Dynamsoft.DCE.CameraView.createInstance('@engineResourcePath/dce.mobile-native.ui.html');
+      cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(view);
+      uiElement = view.getUIElement();
+      uiElement.shadowRoot.querySelector('.dce-mn-resolution-box').remove();
+      uiElement.shadowRoot.querySelector('.dce-mn-camera-switch').remove();
+      document.querySelector("#cameraViewContainer").append(uiElement);
+      cvRouter.setInput(cameraEnhancer);
+
+      const resultsContainer = document.querySelector("#results");
+      cvRouter.addResultReceiver({ onRecognizedTextLinesReceived: (result) => {
+        //console.log(result);//debug
+        if (result.textLineResultItems.length > 0) {
+          Dynamsoft.DCE.Feedback.beep();
+          resultsContainer.textContent = "";
+          for (let item of result.textLineResultItems) {
+            resultsContainer.textContent += `${item.text}\n`;
+          }
+        }
+      }});
+
+      await cameraEnhancer.setResolution({width:480,height:360});
+      await cameraEnhancer.open();
+
+      const dims=[1,3,32,256];
+      let rsl = cameraEnhancer.getResolution();
+      await cameraEnhancer.setScanRegion({x:rsl.width/2-dims[3]/2+25,y:rsl.height/2-dims[2]/2,width:dims[3]-50,height:dims[2],isMeasuredInPercentage:false});
+
+      cvRouter.startCapturing("u11478");
+      cameraEnhancer.setPixelFormat(Dynamsoft.Core.EnumImagePixelFormat.IPF_ABGR_8888);
+    })();
+  </script>
+</body>
+</html>
