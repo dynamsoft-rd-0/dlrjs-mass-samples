@@ -4,7 +4,8 @@ import { LicenseManager, CoreModule, CaptureVisionRouter, CameraView, CameraEnha
 
 const componentDestroyedErrorMsg = "LabelRecognizer Component Destroyed";
 
-LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9");
+// Expired:	12/7/2024
+LicenseManager.initLicense("t0068MgAAAI//CICvupAwTBwv1spfqZQUQPmRSddpuYnJBQxKM+LkvVkU+s//+3hX/IXx3gxRGRYrQqv+08I1l2D7WVyZhNE=");
 CoreModule.engineResourcePaths.rootDirectory = 'https://cdn.jsdelivr.net/npm/';
 
 // reference: https://github.com/Dynamsoft/barcode-reader-javascript-samples/blob/v10.4.20/hello-world/react-hooks/src/components/VideoCapture/VideoCapture.tsx
