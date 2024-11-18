@@ -7,7 +7,7 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "dynamsoft-core": "3.4.21-beta-202411040411",
-    "dynamsoft-capture-vision-bundle": "2.4.2200-beta-202411150109",
+    "dynamsoft-capture-vision-bundle": "2.4.2200-beta-202411172057",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-scripts": "5.0.1",

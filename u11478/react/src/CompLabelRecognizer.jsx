@@ -38,7 +38,7 @@ function CompLabelRecognizer(){
         cameraViewContainer.current.append(uiElement);
 
         // Create a `CaptureVisionRouter` instance and set `CameraEnhancer` instance as its image source.
-        cvRouter = await CaptureVisionRouter.createInstanceForU11478();
+        cvRouter = await CaptureVisionRouter.createInstance();
         if (isDestroyed) { throw Error(componentDestroyedErrorMsg); }
         cvRouter.setInput(cameraEnhancer);
 
