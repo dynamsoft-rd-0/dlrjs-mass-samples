@@ -77,7 +77,7 @@ await cameraEnhancer.setResolution({width:480,height:360});
 // Open
 await cameraEnhancer.open();
 // Set region after open.
-// In case the actual resolution is different from what you expected.
+// Get new resolution, in case the actual resolution is different from what you expected.
 // `dims` matches the input required by the model.
 // Just use it.
 const dims=[1,3,32,256];
