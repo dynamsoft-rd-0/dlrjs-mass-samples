@@ -54,7 +54,7 @@ CoreModule.engineResourcePaths.rootDirectory = 'https://cdn.jsdelivr.net/npm/';
 
 <br><br><br>
 
-We need three instance.
+We need three instances.
 
 ### Camera View
 ```js
