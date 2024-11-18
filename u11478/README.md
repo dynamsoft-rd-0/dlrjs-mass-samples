@@ -72,7 +72,7 @@ cameraViewContainer.current.append(uiElement);
 ```js
 // Control the camera
 cameraEnhancer = await CameraEnhancer.createInstance(cameraView);
-// Since the neural network model only recognizes areas of size 512*64, we don't need a high resolution.
+// Since the neural network model only recognizes areas of size 256*32, we don't need a high resolution.
 await cameraEnhancer.setResolution({width:480,height:360});
 // Open
 await cameraEnhancer.open();
