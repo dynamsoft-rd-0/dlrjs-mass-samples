@@ -47,10 +47,7 @@ function CompLabelRecognizer(){
           //console.log(result);//debug
           if (result.textLineResultItems.length > 0) {
             Feedback.beep();
-            resultsContainer.current.textContent = "";
-            for (let item of result.textLineResultItems) {
-              resultsContainer.current.textContent += `${item.text}\n`;
-            }
+            resultsContainer.current.textContent = result.textLineResultItems[0].text;
           }
         }});
 
@@ -89,7 +86,10 @@ function CompLabelRecognizer(){
         await pInit;
         cvRouter?.dispose();
         cameraEnhancer?.dispose();
-      } catch (_) {}
+      } catch (_) {
+
+        console.log("I got the exception",_)
+      }
     };
   },[]);  
 
