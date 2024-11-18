@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This is a customized version developed based on [Dynamsoft Capture Vision JavaScript Edition](https://www.dynamsoft.com/capture-vision/docs/web/programming/javascript/index.html?ver=latest&cVer=true) v2.4.2200. Mainly customized the neural network for text recognition and some supporting APIs.
+This is a customized version developed based on [Dynamsoft Capture Vision JavaScript Edition](https://www.dynamsoft.com/capture-vision/docs/web/programming/javascript/index.html?ver=latest&cVer=true) v2.4.2200, primarily enhancing the neural network for text recognition and some supporting APIs.
 
 ## Install
 
@@ -47,7 +47,7 @@ It is a lazy function. If there is any error\(expiration, network problem\), it 
 
 ### engineResourcePaths
 
-Some resources will be loaded in the web worker and will not be packaged by webpack. Here it is specified to find these resources from the jsdeliver CDN.
+Some resources will be loaded in the web worker and will not be packaged by webpack. Here it is specified to find these resources from jsdeliver CDN.
 ```
 CoreModule.engineResourcePaths.rootDirectory = 'https://cdn.jsdelivr.net/npm/';
 ```
@@ -86,7 +86,7 @@ await cameraEnhancer.setScanRegion({x:rsl.width/2-dims[3]/2+25,y:rsl.height/2-di
 // Close
 // You can close it after getting the result.
 // Of course I have taken care of that, you just need to remove the component and it will close automatically.
-// `{isShowCamera && <CompLableRecognizer></CompLableRecognizer>}`
+// `{isShowCamera && <CompLabelRecognizer></CompLabelRecognizer>}`
 await cameraEnhancer.close();
 ```
 
@@ -101,9 +101,9 @@ cvRouter.addResultReceiver({ onRecognizedTextLinesReceived: (result) => {
   if (result.textLineResultItems.length > 0) {
     Feedback.beep(); // Prompt sound
     // Tell parent component I got the results.
-    // So parent component can remove `CompLableRecognizer` now.
+    // So parent component can remove `CompLabelRecognizer` now.
     setTextState(result.textLineResultItems[0].text);
-    // Or use a `OK` button to confirm final result and remove `CompLableRecognizer`.
+    // Or use a `OK` button to confirm final result and remove `CompLabelRecognizer`.
   }
 }});
 // Start recognition algorithm with custom logic.
