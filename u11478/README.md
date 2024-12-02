@@ -64,6 +64,11 @@ let uiElement = cameraView.getUIElement();
 // Remove anything you don't need
 uiElement.shadowRoot.querySelector('.dce-mn-resolution-box').remove();
 uiElement.shadowRoot.querySelector('.dce-mn-camera-switch').remove();
+// customize the scanRegionMaskStyle
+// default: { fillStyle: "rgba(0,0,0,0.5)", strokeStyle: "rgb(254,142,20)", lineWidth: 6 }
+let scanRegionMaskStyle = cameraEnhancer.cameraView.getScanRegionMaskStyle();
+scanRegionMaskStyle.lineWidth = 1;
+cameraEnhancer.cameraView.setScanRegionMaskStyle(scanRegionMaskStyle); 
 // Append the ui element to a good place
 cameraViewContainer.current.append(uiElement);
 ```
