@@ -10,17 +10,17 @@ CoreModule.engineResourcePaths.rootDirectory = 'https://cdn.jsdelivr.net/npm/';
 
 // reference: https://github.com/Dynamsoft/barcode-reader-javascript-samples/blob/v10.4.20/hello-world/react-hooks/src/components/VideoCapture/VideoCapture.tsx
 function CompLabelRecognizer(){
-  const cameraViewContainer = useRef(null);
-  const resultsContainer = useRef(null);
+  const cameraViewContainer = useRef<HTMLDivElement>(null);
+  const resultsContainer = useRef<HTMLDivElement>(null);
   
   useEffect(()=>{
     
-    let resolveInit;
+    let resolveInit:Function;
     const pInit = new Promise((r) => { resolveInit = r; });
     let isDestroyed = false;
 
-    let cvRouter;
-    let cameraEnhancer;
+    let cvRouter:CaptureVisionRouter;
+    let cameraEnhancer:CameraEnhancer;
 
     (async () => {
       try {
@@ -33,9 +33,9 @@ function CompLabelRecognizer(){
 
         // Get UI and append it to DOM.
         let uiElement = cameraView.getUIElement();
-        uiElement.shadowRoot.querySelector('.dce-mn-resolution-box').remove();
-        uiElement.shadowRoot.querySelector('.dce-mn-camera-switch').remove();
-        cameraViewContainer.current.append(uiElement);
+        uiElement.shadowRoot!.querySelector('.dce-mn-resolution-box')!.remove();
+        uiElement.shadowRoot!.querySelector('.dce-mn-camera-switch')!.remove();
+        cameraViewContainer.current!.append(uiElement);
 
         // Create a `CaptureVisionRouter` instance and set `CameraEnhancer` instance as its image source.
         cvRouter = await CaptureVisionRouter.createInstance();
@@ -47,7 +47,7 @@ function CompLabelRecognizer(){
           //console.log(result);//debug
           if (result.textLineResultItems.length > 0) {
             Feedback.beep();
-            resultsContainer.current.textContent = result.textLineResultItems[0].text;
+            resultsContainer.current!.textContent = result.textLineResultItems[0].text;
           }
         }});
 
@@ -64,7 +64,7 @@ function CompLabelRecognizer(){
 
         cvRouter.startCapturing("u11478");
         cameraEnhancer.setPixelFormat(EnumImagePixelFormat.IPF_ABGR_8888);
-      } catch (ex) {
+      } catch (ex:any) {
         if (ex?.message === componentDestroyedErrorMsg) {
           console.log(componentDestroyedErrorMsg);
         } else {
@@ -73,13 +73,14 @@ function CompLabelRecognizer(){
           alert(errMsg);
         }
       }
+
       // Resolve pInit promise once initialization is complete.
-      resolveInit();
+      resolveInit!();
     })();
 
 
     // componentWillUnmount. dispose cvRouter when it's no longer needed
-    return async () => {
+    return ()=>{(async () => {
       isDestroyed = true;
       try {
         // Wait for the pInit to complete before disposing resources.
@@ -90,7 +91,7 @@ function CompLabelRecognizer(){
 
         console.log("I got the exception",_)
       }
-    };
+    })()};
   },[]);  
 
   return (
