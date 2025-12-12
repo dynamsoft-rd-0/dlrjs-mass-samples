@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+  <!-- If you want to use it with other versions of Dynamsoft products (namespace/package conflicts), please contact us. -->
+  <script src="https://cdn.jsdelivr.net/npm/dynamsoft-capture-vision-bundle@3.2.4000/dist/dcv.bundle.js"></script>
+  <div id="cameraViewContainer" style="width: 100%; height: 60vh"></div>
+  <textarea id="results" style="width: 100%; min-height: 10vh; font-size: 3vmin; overflow: auto" disabled></textarea>
+  <script>
+    //// Replace with your license key
+    //Dynamsoft.License.LicenseManager.initLicense("");
+
+
+    let cvRouter, cameraEnhancer, uiElement;
+
+    function qualifyURL(relativeUrl) {
+      const a = document.createElement('a');
+      a.href = relativeUrl; // Browser resolves the path relative to the current page
+      return a.href;       // Returns the absolute URL
+    }
+
+    (async () => {
+      await Dynamsoft.CVR.CaptureVisionRouter.appendDLModelBuffer('pmi-len8', qualifyURL('./'));
+      await Dynamsoft.CVR.CaptureVisionRouter.appendDLModelBuffer('pmi-len10', qualifyURL('./'));
+      //await Dynamsoft.CVR.CaptureVisionRouter.appendDLModelBuffer('pmi-len8', 'http://localhost/g/dlrjs-mass-samples/u11478_2F/');
+
+      cvRouter = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
+      cvRouter.initSettings('./read-pmi-text.json');
+
+      let view = await Dynamsoft.DCE.CameraView.createInstance('@engineResourcePath/dce.mobile-native.ui.xml');
+      cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(view);
+      uiElement = view.getUIElement();
+      uiElement.shadowRoot.querySelector('.dce-mn-resolution-box').remove();
+      uiElement.shadowRoot.querySelector('.dce-mn-camera-switch').remove();
+      document.querySelector("#cameraViewContainer").append(uiElement);
+      cvRouter.setInput(cameraEnhancer);
+
+      // Filter out unchecked text_line results.
+      const filter = new Dynamsoft.Utility.MultiFrameResultCrossFilter();
+      filter.enableResultCrossVerification("text_line", true);
+      await cvRouter.addResultFilter(filter);
+
+      const resultsContainer = document.querySelector("#results");
+      // let count = 0;//debug
+      let lastResultTime = 0;
+      let lastResult;
+      cvRouter.addResultReceiver({
+        onRecognizedTextLinesReceived: async(result) => {
+          
+          // if(++count < 10){
+          //   console.log(result);//debug
+          // }
+
+          if (result.textLineResultItems.length > 0) {
+            
+            // len-10 text prior to len-8 text
+            let bestResult, bestResultTxt, bestConfidence;
+            for (let item of result.textLineResultItems) {
+              if(!bestResult || item.text.length > bestResult.text.length){
+                item.minConfidence = item.characterResults.reduce((minConfidence, r)=>{
+                  if(r.characterHConfidence < minConfidence){
+                    minConfidence = r.characterHConfidence;
+                  }
+                  return minConfidence;
+                }, 100);
+                // minConfidence < 70 will be ignored
+                if(item.minConfidence < 70){ continue; }
+                bestResult = item;
+              }
+            }
+
+            if(!bestResult){return;}
+
+            let dateNow = Date.now();
+            // if recently detected len-10 text, ignore len-8 text
+            if(lastResult?.text.length > bestResult.text.length && dateNow - lastResultTime < 2000){
+              return;
+            }
+
+            resultsContainer.textContent = [
+              `${bestResult.text} minConfidence: ${bestResult.minConfidence}`,
+              `${bestResult.characterResults.map(r=>r.characterH + '-' + r.characterHConfidence).join(',')}`
+            ].join('\n');
+            lastResult = bestResult;
+            lastResultTime = dateNow;
+            Dynamsoft.DCE.Feedback.beep();
+          }
+          // await cvRouter.stopCapturing();
+          // await cameraEnhancer.close();
+        }
+      });
+
+      await cameraEnhancer.setResolution({width:480,height:360});
+      await cameraEnhancer.open();
+
+      const dims=[1,3,64,256];
+      let rsl = cameraEnhancer.getResolution();
+      await cameraEnhancer.setScanRegion({x:rsl.width/2-dims[3]/2+25,y:rsl.height/2-dims[2]/2,width:dims[3]-50,height:dims[2],isMeasuredInPercentage:false});
+
+      cvRouter.startCapturing("read-pmi-text");
+    })();
+  </script>
+</body>
+</html>
