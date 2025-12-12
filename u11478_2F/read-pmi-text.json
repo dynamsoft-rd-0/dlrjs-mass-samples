@@ -46,7 +46,6 @@
                     "Section": "ST_TEXT_LINE_LOCALIZATION"
                 },
                 {
-                    "ImageParameterName": "ip-recognize-textlines",
                     "Section": "ST_TEXT_LINE_RECOGNITION"
                 }
             ],
@@ -62,7 +61,6 @@
                     "Section": "ST_TEXT_LINE_LOCALIZATION"
                 },
                 {
-                    "ImageParameterName": "ip-recognize-textlines",
                     "Section": "ST_TEXT_LINE_RECOGNITION"
                 }
             ],
