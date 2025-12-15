@@ -1,0 +1,124 @@
+{
+    "CaptureVisionTemplates": [
+        {
+            "ImageROIProcessingNameArray": [
+                "roi-recognize-len8-text",
+                "roi-recognize-len10-text"
+            ],
+            "Name": "read-pmi-text",
+            "MaxParallelTasks": 0
+        },
+        {
+            "ImageROIProcessingNameArray": [
+                "roi-recognize-len8-text"
+            ],
+            "Name": "read-len8-text",
+            "MaxParallelTasks": 0
+        },
+        {
+            "ImageROIProcessingNameArray": [
+                "roi-recognize-len10-text"
+            ],
+            "Name": "read-len10-text",
+            "MaxParallelTasks": 0
+        }
+    ],
+    "TargetROIDefOptions": [
+        {
+            "Name": "roi-recognize-len10-text",
+            "TaskSettingNameArray": [
+                "task-recognize-len10-text"
+            ]
+        },
+        {
+            "Name": "roi-recognize-len8-text",
+            "TaskSettingNameArray": [
+                "task-recognize-len8-text"
+            ]
+        }
+    ],
+    "LabelRecognizerTaskSettingOptions": [
+        {
+            "Name": "task-recognize-len10-text",
+            "SectionArray": [
+                {
+                    "ImageParameterName": "ip-recognize-textlines",
+                    "Section": "ST_TEXT_LINE_LOCALIZATION"
+                },
+                {
+                    "Section": "ST_TEXT_LINE_RECOGNITION"
+                }
+            ],
+            "TextLineSpecificationNameArray": [
+                "tls-textlines-len10"
+            ]
+        },
+        {
+            "Name": "task-recognize-len8-text",
+            "SectionArray": [
+                {
+                    "ImageParameterName": "ip-recognize-textlines",
+                    "Section": "ST_TEXT_LINE_LOCALIZATION"
+                },
+                {
+                    "Section": "ST_TEXT_LINE_RECOGNITION"
+                }
+            ],
+            "TextLineSpecificationNameArray": [
+                "tls-textlines-len8"
+            ]
+        }
+    ],
+    "ImageParameterOptions": [
+        {
+            "ApplicableStages": [
+                {
+                    "Stage": "SST_DETECT_TEXT_ZONES",
+                    "TextDetectionMode": {
+                        "Direction": "HORIZONTAL",
+                        "Mode": "TTDM_LINE",
+                        "StringLengthRange": [
+                            6,
+                            12
+                        ],
+                        "MaxSpacingInALine": 80,
+                        "Sensitivity": 9
+                    }
+                },
+                {
+                   "Stage": "SST_BINARIZE_IMAGE",
+                   "BinarizationModes": [
+                       {
+                           "BlockSizeX": 0,
+                           "BlockSizeY": 0,
+                           "EnableFillBinaryVacancy": 0,
+                           "Mode": "BM_LOCAL_BLOCK",
+                           "MorphOperation": "Close",
+                           "MorphOperationKernelSizeX": 3,
+                           "MorphOperationKernelSizeY": 7,
+                           "MorphShape": "Rectangle",
+                           "ThresholdCompensation": 10
+                       }
+                   ]
+               }
+            ],
+            "Name": "ip-recognize-textlines"
+        }
+    ],
+    "TextLineSpecificationOptions": [
+        {
+            "Name": "tls-textlines-len10",
+            "CharacterModelName": "",
+            "TextLineRecModelName": "pmi-len10",
+            "StringRegExPattern": "([23456789BCDFGHJKLMNPQRSTVWXZ]{10}){(10)}",
+            "TextLinesCount": 1
+        },
+        {
+            "Name": "tls-textlines-len8",
+            "CharacterModelName": "",
+            "TextLineRecModelName": "pmi-len8",
+            "StringRegExPattern": "([245679ABCFGHKMNPRST]{8}){(8)}",
+            "TextLinesCount": 1
+        }
+    ]
+}
