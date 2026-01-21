@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
-  <script src="https://npm.scannerproxy.com:802/cdn/@dynamsoft/dynamsoft-capture-vision-bundle@3.4.1000-dev-20260115162916/dist/dcv.bundle.js"></script>
+  <script src="https://npm.scannerproxy.com:802/cdn/@dynamsoft/dynamsoft-capture-vision-bundle@3.4.1000-dev-20260121170616/dist/dcv.bundle.js"></script>
 </head>
 
 <body>
@@ -19,7 +19,7 @@
     const portraitZoneContainer = document.querySelector(".portrait-zone");
 
     Dynamsoft.Core.CoreModule.engineResourcePaths = {
-      dcvData: 'https://npm.scannerproxy.com:802/cdn/@dynamsoft/dynamsoft-capture-vision-data@1.2.0-dev-20260115155836/',
+      dcvData: 'https://npm.scannerproxy.com:802/cdn/@dynamsoft/dynamsoft-capture-vision-data@1.2.0-dev-20260121170704/',
     }
     Dynamsoft.License.LicenseManager.initLicense("", { executeNow: true });
 
@@ -37,11 +37,12 @@
       let crr = new Dynamsoft.CVR.CapturedResultReceiver();
       crr.onCapturedResultReceived = async (pResult) => {
         cvr.stopCapturing();
-        const oriImg = pResult.items.filter(item => item.type === 1)[0];
-        const quad = await Dynamsoft.IdentityUtility.IdentityProcessor.findPrecisePortraitZone();
-        console.log("findPrecisePortraitZone: ", quad);
+        const oriImgItem = pResult.items.filter(item => item.type === 1)[0];
+        const oriImg = await oriImgItem.getDsImageData();
+        const quad = await Dynamsoft.IdentityUtility.IdentityProcessor.findPortraitZone();
+        console.log("findPortraitZone: ", quad);
         if (!quad.errorCode) {
-          const croppedImage = await Dynamsoft.Utility.ImageProcessor.cropAndDeskewImage(oriImg.imageData, quad);
+          const croppedImage = await Dynamsoft.Utility.ImageProcessor.cropAndDeskewImage(oriImg, quad);
           console.log("croppedImage: ", croppedImage);
           portraitZoneContainer.innerHTML = "";
           portraitZoneContainer.append(Dynamsoft.Core._toCanvas(croppedImage));
@@ -67,7 +68,7 @@
       await pInit;
       const result = await cvr.capture(e.target.files[0], "ReadPassportAndId");
       console.log(result);
-      const quad = await Dynamsoft.IdentityUtility.IdentityProcessor.findPrecisePortraitZone();
+      const quad = await Dynamsoft.IdentityUtility.IdentityProcessor.findPortraitZone();
       console.log("findPrecisePortraitZone: ", quad);
       const croppedImage = await Dynamsoft.Utility.ImageProcessor.cropAndDeskewImage(e.target.files[0], quad);
       console.log("croppedImage: ", croppedImage);
