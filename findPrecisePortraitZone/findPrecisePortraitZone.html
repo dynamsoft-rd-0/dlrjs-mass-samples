@@ -43,8 +43,8 @@
           console.log(ex);
         }
         console.log("findPortraitZone: ", quad);
+        customLayer.clearDrawingItems();
         if (quad && !quad.errorCode) {
-          customLayer.clearDrawingItems();
           const imageDrawingStyleId = Dynamsoft.DCE.DrawingStyleManager.createDrawingStyle({
             lineWidth: 5, fillStyle: "rgba(0,0,255,0.6)"
           });
