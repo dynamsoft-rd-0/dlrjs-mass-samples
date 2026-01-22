@@ -5,29 +5,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
-  <script src="https://npm.scannerproxy.com:802/cdn/@dynamsoft/dynamsoft-capture-vision-bundle@3.4.1000-dev-20260121170616/dist/dcv.bundle.js"></script>
+  <script src="https://npm.scannerproxy.com:802/cdn/@dynamsoft/dynamsoft-capture-vision-bundle@3.4.1000-dev-20260122160215/dist/dcv.bundle.js"></script>
 </head>
 
 <body>
   <button class="startCapturing">start capturing</button>
   <input type="file" class="captureImage" />
   <div class="div-ui-container" style="width: 100%; height: 80vh; margin-top: 10px;display: none;"></div>
-  <div class="portrait-zone" style="margin-top: 10px;"></div>
 
   <script>
     const uiContainer = document.querySelector(".div-ui-container");
-    const portraitZoneContainer = document.querySelector(".portrait-zone");
 
     Dynamsoft.Core.CoreModule.engineResourcePaths = {
       dcvData: 'https://npm.scannerproxy.com:802/cdn/@dynamsoft/dynamsoft-capture-vision-data@1.2.0-dev-20260121170704/',
     }
     Dynamsoft.License.LicenseManager.initLicense("", { executeNow: true });
 
-    let view, dce, cvr;
+    let view, dce, cvr, customLayer;
     let pInit = (async function init() {
       cvr = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
       view = await Dynamsoft.DCE.CameraView.createInstance();
       dce = await Dynamsoft.DCE.CameraEnhancer.createInstance(view);
+      customLayer = view.createDrawingLayer();
       dce._imageDataGetter.useWebGLByDefault = false;
       dce.setPixelFormat(10);
 
@@ -37,20 +36,23 @@
       let crr = new Dynamsoft.CVR.CapturedResultReceiver();
       crr.onCapturedResultReceived = async (pResult) => {
         cvr.stopCapturing();
-        const oriImgItem = pResult.items.filter(item => item.type === 1)[0];
-        const oriImg = await oriImgItem.getDsImageData();
-        const quad = await Dynamsoft.IdentityUtility.IdentityProcessor.findPortraitZone();
-        console.log("findPortraitZone: ", quad);
-        if (!quad.errorCode) {
-          const croppedImage = await Dynamsoft.Utility.ImageProcessor.cropAndDeskewImage(oriImg, quad);
-          console.log("croppedImage: ", croppedImage);
-          portraitZoneContainer.innerHTML = "";
-          portraitZoneContainer.append(Dynamsoft.Core._toCanvas(croppedImage));
-          view.clearAllInnerDrawingItems();
-          uiContainer.style.display = "none";
-        } else {
-          cvr.startCapturing("ReadPassportAndId");
+        let quad;
+        try {
+          quad = await Dynamsoft.IdentityUtility.IdentityProcessor.findPortraitZone();
+        } catch (ex) {
+          console.log(ex);
         }
+        console.log("findPortraitZone: ", quad);
+        if (quad && !quad.errorCode) {
+          customLayer.clearDrawingItems();
+          const imageDrawingStyleId = Dynamsoft.DCE.DrawingStyleManager.createDrawingStyle({
+            lineWidth: 5, fillStyle: "rgba(0,0,255,0.6)"
+          });
+
+          const customHighlightItem = new Dynamsoft.DCE.QuadDrawingItem(quad, imageDrawingStyleId);
+          customLayer.addDrawingItems([customHighlightItem]);
+        }
+        cvr.startCapturing("ReadPassportAndId");
       }
       await cvr.addResultReceiver(crr);
 
@@ -69,7 +71,7 @@
       const result = await cvr.capture(e.target.files[0], "ReadPassportAndId");
       console.log(result);
       const quad = await Dynamsoft.IdentityUtility.IdentityProcessor.findPortraitZone();
-      console.log("findPrecisePortraitZone: ", quad);
+      console.log("findPortraitZone: ", quad);
       const croppedImage = await Dynamsoft.Utility.ImageProcessor.cropAndDeskewImage(e.target.files[0], quad);
       console.log("croppedImage: ", croppedImage);
       portraitZoneContainer.innerHTML = "";
