@@ -12,9 +12,11 @@
   <button class="startCapturing">start capturing</button>
   <input type="file" class="captureImage" />
   <div class="div-ui-container" style="width: 100%; height: 80vh; margin-top: 10px;display: none;"></div>
+  <div class="div-portrait-zone"></div>
 
   <script>
     const uiContainer = document.querySelector(".div-ui-container");
+    const portraitZoneContainer = document.querySelector(".div-portrait-zone");
 
     Dynamsoft.Core.CoreModule.engineResourcePaths = {
       dcvData: 'https://npm.scannerproxy.com:802/cdn/@dynamsoft/dynamsoft-capture-vision-data@1.2.0-dev-20260121170704/',
@@ -68,6 +70,9 @@
 
     document.querySelector(".captureImage").addEventListener("change", async (e) => {
       await pInit;
+      cvr.stopCapturing();
+      dce.close();
+       uiContainer.style.display = "none";
       const result = await cvr.capture(e.target.files[0], "ReadPassportAndId");
       console.log(result);
       const quad = await Dynamsoft.IdentityUtility.IdentityProcessor.findPortraitZone();
