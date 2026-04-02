@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="https://npm.scannerproxy.com:802/cdn/@dynamsoft/dynamsoft-capture-vision-bundle@3.4.1000-dev-20260122171048/dist/dcv.bundle.js"></script>
+</head>
+
+<body>
+  <button class="startCapturing">start capturing</button>
+  <input type="file" class="captureImage" />
+  <div class="div-ui-container" style="width: 100%; height: 80vh; margin-top: 10px;display: none;"></div>
+  <div class="div-portrait-zone"></div>
+
+  <script>
+    const uiContainer = document.querySelector(".div-ui-container");
+    const portraitZoneContainer = document.querySelector(".div-portrait-zone");
+
+    Dynamsoft.Core.CoreModule.engineResourcePaths = {
+      dcvData: 'https://npm.scannerproxy.com:802/cdn/@dynamsoft/dynamsoft-capture-vision-data@1.2.0-dev-20260121170704/',
+    }
+    Dynamsoft.License.LicenseManager.initLicense("", { executeNow: true });
+
+    let view, dce, cvr, customLayer;
+    let pInit = (async function init() {
+      cvr = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
+      view = await Dynamsoft.DCE.CameraView.createInstance();
+      dce = await Dynamsoft.DCE.CameraEnhancer.createInstance(view);
+      customLayer = view.createDrawingLayer();
+      dce._imageDataGetter.useWebGLByDefault = false;
+      dce.setPixelFormat(10);
+
+      cvr.setInput(dce);
+      await cvr.initSettings("./findPrecisePortraitZone.json");
+
+      let crr = new Dynamsoft.CVR.CapturedResultReceiver();
+      crr.onCapturedResultReceived = async (pResult) => {
+        cvr.stopCapturing();
+        let quad;
+        try {
+          quad = await Dynamsoft.IdentityUtility.IdentityProcessor.findPortraitZone();
+        } catch (ex) {
+          console.log(ex);
+        }
+        console.log("findPortraitZone: ", quad);
+        customLayer.clearDrawingItems();
+        if (quad && !quad.errorCode) {
+          const imageDrawingStyleId = Dynamsoft.DCE.DrawingStyleManager.createDrawingStyle({
+            lineWidth: 5, fillStyle: "rgba(0,0,255,0.6)"
+          });
+
+          const customHighlightItem = new Dynamsoft.DCE.QuadDrawingItem(quad, imageDrawingStyleId);
+          customLayer.addDrawingItems([customHighlightItem]);
+        }
+        cvr.startCapturing("ReadPassportAndId");
+      }
+      await cvr.addResultReceiver(crr);
+
+      uiContainer.append(view.getUIElement());
+    })();
+
+    document.querySelector(".startCapturing").addEventListener("click", async () => {
+      await pInit;
+      uiContainer.style.display = "block";
+      await dce.open();
+      await cvr.startCapturing("ReadPassportAndId");
+    });
+
+    document.querySelector(".captureImage").addEventListener("change", async (e) => {
+      await pInit;
+      cvr.stopCapturing();
+      dce.close();
+       uiContainer.style.display = "none";
+      const result = await cvr.capture(e.target.files[0], "ReadPassportAndId");
+      console.log(result);
+      const quad = await Dynamsoft.IdentityUtility.IdentityProcessor.findPortraitZone();
+      console.log("findPortraitZone: ", quad);
+      const croppedImage = await Dynamsoft.Utility.ImageProcessor.cropAndDeskewImage(e.target.files[0], quad);
+      console.log("croppedImage: ", croppedImage);
+      portraitZoneContainer.innerHTML = "";
+      portraitZoneContainer.append(Dynamsoft.Core._toCanvas(croppedImage));
+    });
+  </script>
+</body>
+
+</html>
