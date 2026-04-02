@@ -116,7 +116,7 @@ function CompLabelRecognizer(){
         await cameraEnhancer.setScanRegion({x:rsl.width/2-dims[3]/2,y:rsl.height/2-dims[2]/2,width:dims[3],height:dims[2],isMeasuredInPercentage:false});
         if (isDestroyed) { throw Error(componentDestroyedErrorMsg); }
 
-        cvRouter.startCapturing("read-pmi-text");
+        cvRouter.startCapturing("read-pmi-text"); // or read-len8-text or read-len10-text
       } catch (ex:any) {
         if (ex?.message === componentDestroyedErrorMsg) {
           console.log(componentDestroyedErrorMsg);
